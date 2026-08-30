@@ -1628,7 +1628,16 @@ async function refrescarEncuestas(){
   const suc = (equipo&&equipo.sucursalId)||E.sucursales[0].id;
   try{
     const t = await api('/api/sucursales/'+suc+'/turno-en-atencion/'+puestoId);
-    ui.encTurnoActivo = t ? {id:t.id, folio:t.folio, tramiteNombre:t.tramite_nombre} : null;
+    const nuevo = t ? {id:t.id, folio:t.folio, tramiteNombre:t.tramite_nombre} : null;
+    // Si la encuesta se quedó a medio llenar (paso 'form') para un turno que
+    // ya no es el que se está atendiendo — se abandonó sin enviarla y el
+    // puesto pasó a la siguiente persona—, no se queda pegada esperando a
+    // que alguien la cierre: se libera para que la nueva atención pueda
+    // usarla desde la pantalla de bienvenida.
+    if (ui.encPaso==='form' && ui.encTurno && (!nuevo || nuevo.id!==ui.encTurno.turnoId)){
+      ui.encPaso='idle'; ui.encIndice=0; ui.encRespuestas={}; ui.encTurno=null;
+    }
+    ui.encTurnoActivo = nuevo;
   }catch(e){ console.error('No se pudo consultar el turno en atención', e); }
 }
 
@@ -1652,6 +1661,7 @@ async function refrescarReportes(){
       api('/api/reportes/metricas'),
       api('/api/reportes/pausas').catch(function(){ return []; })
     ]);
+    ui.reportesError = null;
     const derivPorTurno = {};
     (r.derivaciones||[]).forEach(function(d){
       (derivPorTurno[d.turno_id] ||= []).push({desde:d.desde_puesto, hacia:d.hacia_seccion, hora:d.hora});
@@ -1665,7 +1675,14 @@ async function refrescarReportes(){
     E.pausasHistorial = (pausas||[]).map(function(p){
       return {puestoId:p.puesto_id, puestoNombre:p.puesto_nombre, sucursalId:p.sucursal_id, causal:p.causal, desde:p.desde, hasta:p.hasta, segundos:p.segundos};
     });
-  }catch(e){ console.error('No se pudo cargar Resumen/Reportes', e); }
+  }catch(e){
+    // Antes este error solo quedaba en la consola: si el token venció o la
+    // cuenta no es de administrador, la pestaña Reportes se quedaba vacía
+    // sin ninguna explicación visible — parecía "bloqueada" sin decir por
+    // qué. Ahora se guarda para mostrarse arriba de Resumen/Reportes.
+    ui.reportesError = e.message || 'No se pudo cargar la información de Resumen/Reportes.';
+    console.error('No se pudo cargar Resumen/Reportes', e);
+  }
 }
 
 function vistaEncuestas(){
@@ -2427,6 +2444,13 @@ function vistaAdmin(){
         ';font-weight:'+(act?'700':'500')+';font-size:13px;cursor:pointer">'+ico(t[2],14)+t[1]+'</button>';
     }).join('')+'</div>';
 
+  if (ui.reportesError && (tabAct==='resumen'||tabAct==='reportes')){
+    h += '<div style="display:flex;align-items:center;gap:9px;background:#FDECEC;border:1px solid #F3B9B9;color:var(--rojo);'+
+      'border-radius:7px;padding:10px 14px;margin-bottom:14px;font-size:13px;font-weight:600">'+
+      ico('alerta',16)+'<span>No se pudo cargar esta pestaña: '+esc(ui.reportesError)+
+      '. Si el mensaje habla de sesión o de administradores, cierre sesión y vuelva a entrar.</span></div>';
+  }
+
   /* ============================== RESUMEN ============================== */
   if (tabAct==='resumen'){
     const A = analizar();
@@ -3075,24 +3099,22 @@ function vistaAdmin(){
     '<p style="font-size:12px;color:var(--dim);margin:0 0 8px;line-height:1.5">El anuncio dice el código del trámite (o «PREF» en preferenciales), el número consecutivo y el puesto — nunca el nombre completo del trámite, ni el nombre o la cédula del asociado.</p>'+
     (function(){
       // El navegador no puede inventar voces: solo puede elegir entre las que
-      // ya están instaladas en Windows/el equipo. Se muestran todas las
-      // disponibles, agrupadas — español de Costa Rica primero, luego el
-      // resto de español latinoamericano, y cualquier otro idioma al final
-      // por si alguna viene mal etiquetada — EXCEPTO español de España: se
-      // pidió que esta lista sea solo de español latino, así que el
-      // castellano ni siquiera se ofrece como opción aquí.
+      // ya están instaladas en Windows/el equipo. Se muestran únicamente las
+      // de español latino, agrupadas — español de Costa Rica primero y luego
+      // el resto de español latinoamericano. Se excluyen tanto el español de
+      // España como cualquier otro idioma instalado (inglés, francés, etc.):
+      // el llamado es siempre en español latino, así que ofrecerlas como
+      // opción sería ruido innecesario en la lista.
       const todas = window.speechSynthesis ? speechSynthesis.getVoices() : [];
       const sinEspana = todas.filter(v=>!esEspana(v));
       const costaRica = sinEspana.filter(v=>v.lang&&v.lang.toLowerCase()==='es-cr');
       const latino = sinEspana.filter(v=>esLatino(v)&&!costaRica.includes(v));
-      const otras = sinEspana.filter(v=>!costaRica.includes(v)&&!latino.includes(v));
       const opt = v => '<option value="'+esc(v.name)+'"'+(c.vozNombre===v.name?' selected':'')+'>'+esc(v.name)+' — '+esc(v.lang)+'</option>';
       let s = '<label class="lbl">Voz del llamado</label><select data-a="adm-voz"><option value="">Automática (español de Costa Rica si hay disponible, si no español latino)</option>';
       if (costaRica.length) s += '<optgroup label="Español de Costa Rica">'+costaRica.map(opt).join('')+'</optgroup>';
       if (latino.length) s += '<optgroup label="Español latinoamericano">'+latino.map(opt).join('')+'</optgroup>';
-      if (otras.length)  s += '<optgroup label="Otros idiomas instalados">'+otras.map(opt).join('')+'</optgroup>';
       s += '</select>';
-      s += '<p style="font-size:11px;color:var(--dim);margin:6px 0 0">'+sinEspana.length+' voces detectadas en este equipo (no se incluye español de España).</p>';
+      s += '<p style="font-size:11px;color:var(--dim);margin:6px 0 0">'+(costaRica.length+latino.length)+' voces en español latino detectadas en este equipo.</p>';
       if (costaRica.length===0 && latino.length===0){
         s += '<div style="background:#FFF6E5;border:1px solid #F3D9A6;color:#8A5B00;border-radius:6px;padding:9px 12px;font-size:11.5px;line-height:1.5;margin-top:8px">'+
           '<b>No se detectó ninguna voz en español latino en este equipo.</b> Esta lista la arma el sistema operativo, no esta página — '+
