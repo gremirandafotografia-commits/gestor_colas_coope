@@ -1,2 +1,0 @@
-0000000000000000000000000000000000000000 543c17afe19460c7c3f0c30b302c08ad9e632366 root <root@vm.(none)> 1788103457 +0000	clone: from https://github.com/cursosiafundepos-create/gestion_colas_de_atencion.git
-543c17afe19460c7c3f0c30b302c08ad9e632366 20940639abe13204c57b3ed0de58d55523eb42a6 GrupoSC <desarrollo@coopelesca.co.cr> 1788104914 +0000	commit: Primera ejecución real verificada: PostgreSQL local, migrate+seed, recorrido completo de ficha, y sincronización en tiempo real confirmada entre 3 pantallas
