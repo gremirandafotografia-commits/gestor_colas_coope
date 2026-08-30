@@ -1,0 +1,4 @@
+Primera ejecución real verificada: PostgreSQL local, migrate+seed, recorrido completo de ficha, y sincronización en tiempo real confirmada entre 3 pantallas
+
+Ver NOTAS_PRUEBA_REAL.md para el detalle. Sin cambios de código — solo
+documentación de la prueba. Commit local: pendiente de subir a GitHub.

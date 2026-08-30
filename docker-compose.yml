@@ -1,0 +1,48 @@
+# Levanta la base de datos y el backend juntos, con un solo comando:
+#
+#   docker compose up -d
+#
+# Es la forma más simple de probar el sistema completo sin instalar
+# PostgreSQL ni Node.js manualmente en la máquina. Para producción real,
+# Informática debe revisar las contraseñas y los volúmenes de respaldo.
+
+services:
+  base_de_datos:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: coopelesca_filas
+      POSTGRES_USER: coopelesca
+      POSTGRES_PASSWORD: cambie-esta-clave
+    volumes:
+      - datos_postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coopelesca"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: .
+    depends_on:
+      base_de_datos:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://coopelesca:cambie-esta-clave@base_de_datos:5432/coopelesca_filas
+      JWT_SECRET: cambie-esto-por-una-cadena-aleatoria-larga
+      DOMINIO_CORREO: "@coopelesca.co.cr"
+      PORT: 4000
+      CORS_ORIGENES: "*"
+    ports:
+      - "4000:4000"
+    # migrate.js y seed.js son idempotentes, pero son pasos de despliegue
+    # (crear tablas, cargar datos iniciales), no parte del arranque del
+    # servidor — no deben repetirse en cada `docker compose up`/reinicio.
+    # Para la primera vez, corra una sola vez:
+    #   docker compose run --rm backend node scripts/migrate.js
+    #   docker compose run --rm backend node scripts/seed.js
+    command: node src/server.js
+
+volumes:
+  datos_postgres:
