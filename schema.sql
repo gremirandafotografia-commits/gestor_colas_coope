@@ -114,6 +114,11 @@ ALTER TABLE turnos ADD COLUMN IF NOT EXISTS powerbi_enviado_en TIMESTAMPTZ;
 -- turno en particular puedan seguir en inglés, sin afectar a nadie más en
 -- la sala ni cambiar el idioma del kiosco para el siguiente asociado.
 ALTER TABLE turnos ADD COLUMN IF NOT EXISTS idioma TEXT NOT NULL DEFAULT 'es';
+
+-- Puesto con personal capacitado para atender en inglés: las fichas tomadas
+-- en inglés se reservan para estos puestos mientras alguno esté libre —
+-- misma mecánica que prioridad_preferencial (Ley 7600), ver colas.js.
+ALTER TABLE puestos ADD COLUMN IF NOT EXISTS atiende_ingles BOOLEAN NOT NULL DEFAULT false;
 -- Acelera la consulta "turnos cerrados sin enviar" que corre el envío
 -- periódico a Power BI cada pocos minutos.
 CREATE INDEX IF NOT EXISTS idx_turnos_powerbi_pendiente ON turnos (estado) WHERE powerbi_enviado_en IS NULL;

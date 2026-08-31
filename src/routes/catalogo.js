@@ -69,13 +69,13 @@ router.post('/puestos', exigirSesion, exigirAdmin, async (req, res) => {
   res.status(201).json({ id, sucursalId, nombre, tipo, area });
 });
 
-/** PATCH /api/puestos/:id — activo, prioridad_preferencial, apoya_pagos, tramites (reemplaza la lista) */
+/** PATCH /api/puestos/:id — activo, prioridad_preferencial, apoya_pagos, atiende_ingles, tramites (reemplaza la lista) */
 router.patch('/puestos/:id', exigirSesion, exigirAdmin, async (req, res) => {
   const { id } = req.params;
   const campos = [];
   const valores = [];
   let i = 1;
-  for (const clave of ['activo', 'prioridad_preferencial', 'apoya_pagos']) {
+  for (const clave of ['activo', 'prioridad_preferencial', 'apoya_pagos', 'atiende_ingles']) {
     if (clave in req.body) { campos.push(`${clave} = $${i++}`); valores.push(req.body[clave]); }
   }
   if (campos.length) {
