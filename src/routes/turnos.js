@@ -79,7 +79,7 @@ router.get('/sucursales/:id/sala', exigirSesion, async (req, res) => {
 
 /** POST /api/turnos — emitir una ficha nueva (lo llama el kiosco). */
 router.post('/turnos', exigirSesion, async (req, res) => {
-  const { sucursalId, tramiteId, preferencial, cedula } = req.body;
+  const { sucursalId, tramiteId, preferencial, cedula, idioma } = req.body;
   const { rows: tRows } = await query('SELECT * FROM tramites WHERE id = $1', [tramiteId]);
   const tramite = tRows[0];
   if (!tramite) return res.status(400).json({ error: 'Trámite no válido.' });
@@ -87,9 +87,9 @@ router.post('/turnos', exigirSesion, async (req, res) => {
   const { folio, consecutivo } = await siguienteFolio(sucursalId, tramite, !!preferencial);
 
   const { rows } = await query(
-    `INSERT INTO turnos (folio, consecutivo, sucursal_id, tramite_id, tramite_nombre, preferencial, cedula)
-     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-    [folio, consecutivo, sucursalId, tramite.id, tramite.nombre, !!preferencial, cedula || null]
+    `INSERT INTO turnos (folio, consecutivo, sucursal_id, tramite_id, tramite_nombre, preferencial, cedula, idioma)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+    [folio, consecutivo, sucursalId, tramite.id, tramite.nombre, !!preferencial, cedula || null, idioma === 'en' ? 'en' : 'es']
   );
   const turno = rows[0];
   avisarCambio(sucursalId, 'turno-nuevo');
