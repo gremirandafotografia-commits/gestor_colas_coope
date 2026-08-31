@@ -108,17 +108,27 @@ async function puestoDisponible(puesto) {
  *  orden. Aplica la reserva de preferenciales: si el puesto NO tiene
  *  prioridad Ley 7600, cede las fichas preferenciales mientras el puesto
  *  prioritario de su misma área esté libre — pero solo esas fichas, nunca
- *  deja de atender las normales. */
+ *  deja de atender las normales. La misma reserva aplica para las fichas
+ *  tomadas en inglés (turnos.idioma = 'en'): un puesto sin atiende_ingles
+ *  las cede mientras haya un puesto con esa marca libre en su área, para
+ *  que las atienda el compañero capacitado — pero si ninguno está libre,
+ *  cualquier puesto puede tomarlas igual (nunca se dejan sin atender). */
 async function colaPuesto(sucursalId, puesto) {
   const permitidos = await tramitesHabilitados(sucursalId, puesto);
   const cola = await colaSucursal(sucursalId);
   let filtrada = cola.filter((t) => permitidos.has(t.tramite_id));
+  const todos = await puestosDeSucursal(sucursalId);
 
   if (!puesto.prioridad_preferencial) {
-    const todos = await puestosDeSucursal(sucursalId);
     const prioritario = todos.find((p) => p.prioridad_preferencial && p.area === puesto.area);
     if (prioritario && (await puestoDisponible(prioritario))) {
       filtrada = filtrada.filter((t) => !t.preferencial);
+    }
+  }
+  if (!puesto.atiende_ingles) {
+    const capacitado = todos.find((p) => p.atiende_ingles && p.area === puesto.area);
+    if (capacitado && (await puestoDisponible(capacitado))) {
+      filtrada = filtrada.filter((t) => t.idioma !== 'en');
     }
   }
   return filtrada;

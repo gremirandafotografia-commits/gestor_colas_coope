@@ -46,10 +46,12 @@ SELECT p.id, 'P'
 FROM puestos p
 WHERE p.tipo = 'caja';
 
--- Preguntas de encuesta por defecto
-INSERT INTO encuesta_preguntas (id, texto, orden) VALUES
-  ('p1', '¿Qué tan satisfecho está con el tiempo de espera?', 1),
-  ('p2', '¿Cómo califica la atención recibida?', 2);
+-- Preguntas de encuesta por defecto — con su traducción al inglés ya cargada,
+-- para que un turno tomado en inglés en el kiosco tenga encuesta bilingüe
+-- desde el primer día, sin que Administración tenga que traducir nada.
+INSERT INTO encuesta_preguntas (id, texto, texto_en, orden) VALUES
+  ('p1', '¿Qué tan satisfecho está con el tiempo de espera?', 'How satisfied are you with the wait time?', 1),
+  ('p2', '¿Cómo califica la atención recibida?', 'How do you rate the service you received?', 2);
 
 -- Usuario administrador inicial — cambie esta contraseña temporal apenas
 -- pueda entrar (el sistema lo obliga a definir una propia en el primer
