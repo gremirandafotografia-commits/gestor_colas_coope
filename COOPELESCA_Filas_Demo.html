@@ -26,6 +26,58 @@
   --grad-morado: linear-gradient(160deg, #9683D6 0%, #6C4FBC 100%);
   --sombra-card: 0 1px 2px rgba(15,45,70,.04), 0 6px 18px -8px rgba(15,45,70,.14);
 }
+/* Modo oscuro: se activa poniendo data-tema="oscuro" en <html> (ver
+   cargarTema/alternarTema en el script). Solo se redefinen las variables de
+   superficie/texto — los colores institucionales (azul, verde, rojo,
+   naranja) se mantienen, porque ya se usan casi siempre como fondo de botón
+   con texto blanco encima y funcionan igual de bien sobre fondo oscuro.
+   Como casi toda la interfaz ya está construida sobre estas variables, este
+   bloque por sí solo retoca la mayoría de las pantallas; las pocas piezas
+   con un color de fondo fijo en vez de variable (alertas, chips, tarjetas
+   puntuales) se corrigen aparte, justo debajo. */
+:root[data-tema="oscuro"]{
+  --azul-suave:#152B3D; --gris:#0E151C; --panel:#1B242D; --borde:#31404C;
+  --texto:#E8EEF3; --dim:#96A7B6;
+  --sombra-card: 0 1px 2px rgba(0,0,0,.25), 0 6px 18px -8px rgba(0,0,0,.5);
+}
+/* Piezas con un color de fondo institucional fijo (no variable) pensado para
+   fondo claro: alertas de error, insignias de preferencial/desborde y sus
+   chips — se oscurecen a mano porque no reaccionan solas al cambiar las
+   variables de arriba. Los selectores por [style*=] apuntan al mismo
+   fragmento exacto de estilo que ya generan vistaKiosco/vistaOperador/etc.,
+   sin tocar esas funciones. */
+html[data-tema="oscuro"] [style*="background:#FDECEA"],
+html[data-tema="oscuro"] [style*="background:#FDECEC"]{
+  background:#3A1E1D !important; border-color:#5A2E2C !important;
+}
+html[data-tema="oscuro"] [style*="background:#F2F9E8"]{
+  background:#1E2E14 !important; border-color:#3A5424 !important;
+}
+html[data-tema="oscuro"] [style*="background:#EAF6E3"]{
+  background:#1E2E14 !important; border-color:#3A5424 !important; color:#9BCB7A !important;
+}
+html[data-tema="oscuro"] [style*="background:#F7FBF2"]{
+  background:#18220F !important;
+}
+html[data-tema="oscuro"] [style*="background:#FFF6E5"]{
+  background:#332608 !important; border-color:#5C4712 !important; color:#E8C077 !important;
+}
+html[data-tema="oscuro"] [style*="background:#EAF4FC"]{
+  background:#132A3B !important; border-color:#20455E !important;
+}
+html[data-tema="oscuro"] .chip,
+html[data-tema="oscuro"] [style*="#C9E2F5"]{
+  border-color:#20455E !important;
+}
+html[data-tema="oscuro"] [style*="background:#fff;overflow:hidden"],
+html[data-tema="oscuro"] [style*="background:#fff;color:var(--texto);border:1px solid var(--borde)"]{
+  background:var(--panel) !important;
+}
+html[data-tema="oscuro"] .chip.p{ background:#1E2E14; border-color:#3A5424; }
+html[data-tema="oscuro"] .chip.d{ background:#332608; border-color:#5C4712; color:#E8C077; }
+html[data-tema="oscuro"] .tile-pref{ background:#1E2E14; }
+html[data-tema="oscuro"] .pref .tile-tram{ border-color:#3A5424; }
+html[data-tema="oscuro"] #carga-inicial{ background:var(--gris); }
 .num-grande{font-family:var(--font-num);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"lnum" 1;}
 /* Tooltip flotante compartido por todas las gráficas de Administración
    (tendencias, barras, donas, horarios): un solo elemento reutilizado,
@@ -87,7 +139,7 @@ main{flex:1;padding:20px;overflow:auto;position:relative}
 .b-rojo{background:var(--rojo);color:#fff}.b-naranja{background:var(--naranja);color:#fff}
 .b-claro{background:var(--panel);color:var(--dim);border:1px solid var(--borde)}
 .b-cielo{background:var(--azul-cla);color:#fff}
-input,select{width:100%;padding:9px 11px;border-radius:6px;border:1px solid var(--borde);background:#fff;color:var(--texto);font-size:13px;font-family:inherit}
+input,select{width:100%;padding:9px 11px;border-radius:6px;border:1px solid var(--borde);background:var(--panel);color:var(--texto);font-size:13px;font-family:inherit}
 label.lbl{display:block;font-size:11.5px;color:var(--dim);margin:12px 0 5px;font-weight:600}
 .sec{font-size:12px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.6px;margin:18px 0 8px}
 .vacio{color:var(--dim);font-size:12.5px;padding:8px 0}
@@ -252,6 +304,7 @@ const ANUNCIO_DEMO = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAo
 const CLAVE_ESTADO = 'coopelesca_filas_estado_v5';
 const CLAVE_EQUIPO = 'coopelesca_filas_equipo';   // por pestaña (sessionStorage)
 const CLAVE_SESION = 'coopelesca_filas_sesion';   // por pestaña (sessionStorage)
+const CLAVE_TEMA = 'coopelesca_filas_tema';       // claro/oscuro — por equipo, no por pestaña (localStorage)
 const DOMINIO = '@coopelesca.co.cr';
 const MAX_LLAMADOS = 3;
 const SEG_AUTOREGRESO = 12;
@@ -259,6 +312,9 @@ const SEG_AUTOREGRESO = 12;
 /* ---------------- iconos (SVG propios, sin dependencias) ---------------- */
 const P = {
   ticket:'M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4Z M14 6v12',
+  idioma:'M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0 M3.5 9h17 M3.5 15h17 M12 3c-3.6 3-3.6 15 0 18 M12 3c3.6 3 3.6 15 0 18',
+  luna:'M20 14.5a8.5 8.5 0 1 1-8.4-10 6.7 6.7 0 0 0 8.4 10Z',
+  sol:'M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z M12 1v3 M12 20v3 M4.2 4.2l2.1 2.1 M17.7 17.7l2.1 2.1 M1 12h3 M20 12h3 M4.2 19.8l2.1-2.1 M17.7 6.3l2.1-2.1',
   monitor:'M3 4h18v12H3z M8 20h8 M12 16v4',
   user:'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z M4 21c0-4 3.6-6 8-6s8 2 8 6',
   cog:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M12 2v3 M12 19v3 M2 12h3 M19 12h3 M4.9 4.9l2.1 2.1 M17 17l2.1 2.1 M19.1 4.9 17 7 M7 17l-2.1 2.1',
@@ -529,6 +585,34 @@ const VOCES_PREF=[
   'google español de estados unidos','google español','google es-us','google es',
   'paulina','juan','diego','lupe','soledad'
 ];
+/** Género de las voces que sabemos identificar por su nombre propio (las que
+ *  ya aparecen en VOCES_PREF, más "mia" y las genéricas de Google) — el
+ *  navegador no expone el género de una voz como dato, así que esto es lo
+ *  único que permite mostrar "(voz masculina)"/"(voz femenina)" en el
+ *  selector y armar el atajo de "voces masculinas recomendadas" de abajo.
+ *  Una voz que no aparezca aquí (de un proveedor que no reconocemos) se
+ *  muestra sin etiqueta de género, nunca con una adivinada. */
+const GENERO_VOZ = {
+  dalia:'F', jorge:'M', beatriz:'F', candela:'F', carlota:'F', cecilio:'M', gerardo:'M', larissa:'F',
+  liberto:'M', luciano:'M', marina:'F', nuria:'F', pelayo:'M', renata:'F', yago:'M', alejo:'M',
+  valeria:'F', sabina:'F', raul:'M',
+  juan:'M', maria:'F', salome:'F', gonzalo:'M', elena:'F', tomas:'M', paola:'F', sebastian:'M',
+  camila:'F', alex:'M', catalina:'F', lorenzo:'M',
+  andres:'M', marta:'F', yolanda:'F', federico:'M', margarita:'F', roberto:'M', karina:'F',
+  victor:'M', tania:'F', mario:'M', lorena:'F', rodrigo:'M',
+  valentina:'F', mateo:'M', carlos:'M', karla:'F', ramona:'F', emilio:'M', andrea:'F', luis:'M',
+  belkys:'F', manuel:'M', sofia:'F', marcelo:'M', paloma:'F', alonso:'M',
+  mia:'F', pedro:'M',
+  paulina:'F', diego:'M', lupe:'F', soledad:'F'
+};
+/** Busca el nombre de la voz dentro de GENERO_VOZ (coincidencia parcial,
+ *  igual que VOCES_PREF): "Microsoft Jorge Online (Natural)" sí encuentra
+ *  "jorge". Devuelve null si no se reconoce el nombre — nunca adivina. */
+function generoVoz(v){
+  const n = (v.name||'').toLowerCase();
+  for (const nombre in GENERO_VOZ){ if (n.indexOf(nombre)>=0) return GENERO_VOZ[nombre]; }
+  return null;
+}
 /** ¿La voz es de español de España (castellano)? Se usa para excluirla de
  *  la elección automática y de la lista de selección manual: aquí se pidió
  *  que el llamado suene siempre en español latino, nunca castellano. */
@@ -737,6 +821,64 @@ function anunciar(o){
   }catch(e){ console.error('Anuncio no disponible', e); }
 }
 
+/* ---------------- accesibilidad del kiosco (guía de voz) ---------------- */
+/** Lee en voz alta cada pantalla del kiosco para que un asociado con
+ *  discapacidad visual pueda tomar su ficha sin ayuda de nadie más — se
+ *  activa con el botón de accesibilidad en el propio kiosco (ver
+ *  botonAccesibilidadKioscoHTML/narrarAccesibilidad). A diferencia de
+ *  anunciar() (el llamado de la sala, que nunca se corta a medias), aquí SÍ
+ *  se cancela cualquier locución anterior al cambiar de pantalla: una
+ *  narración vieja ya no sirve si la persona avanzó. Para un asociado con
+ *  discapacidad AUDITIVA no hace falta nada especial aquí: el kiosco ya es
+ *  100% visual (títulos, botones y la ficha final se ven en pantalla sin
+ *  depender de ningún sonido), así que esta guía es un añadido para quien
+ *  no ve bien, sin quitarle nada a quien no oye bien. */
+/* Algunas voces del navegador reconocen ciertas palabras españolas que
+   también existen (con otra pronunciación) en inglés — "mutual" es el caso
+   detectado: varias voces la leen con fonética inglesa en vez de la
+   española, aunque el resto de la frase suene bien. Esta lista sustituye
+   SOLO lo que se envía al motor de voz (nunca lo que se ve en pantalla) por
+   una grafía que un motor en español sigue leyendo igual, pero que ya no
+   coincide con la palabra inglesa en su diccionario de pronunciación. */
+const SUSTITUCIONES_VOZ = [
+  [/\bmutual\b/gi, 'mutúal']
+];
+function aHablado(texto){
+  return SUSTITUCIONES_VOZ.reduce(function(t, par){ return t.replace(par[0], par[1]); }, texto);
+}
+function hablarAccesibilidad(texto){
+  if (!window.speechSynthesis) return;
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(aHablado(texto));
+    u.lang = 'es-CR';
+    u.rate = E.config.vozVelocidad || .94;
+    u.pitch = E.config.vozTono!=null ? E.config.vozTono : 1.04;
+    const v = elegirVoz(E.config.vozNombre); if (v){ u.voice=v; u.lang=v.lang; }
+    speechSynthesis.speak(u);
+  }catch(e){ console.error('Guía de voz de accesibilidad no disponible', e); }
+}
+/** Narra UNA VEZ por pantalla distinta (no en cada repintado — el kiosco se
+ *  repinta solo cada pocos segundos por el sondeo de refrescarKiosco()).
+ *  "clave" identifica el contenido actual (paso + trámite + preferencial,
+ *  según corresponda); mientras no cambie, no se repite la narración. Se
+ *  agenda con ui.tras porque vistaKiosco() es parte del render — la voz
+ *  debe sonar DESPUÉS de pintar, no durante. */
+function narrarAccesibilidad(clave, texto){
+  if (!ui.accesKiosco || ui.accesUltimaClave===clave) return;
+  ui.accesUltimaClave = clave;
+  ui.tras = function(){ hablarAccesibilidad(texto); };
+}
+/** Botón de accesibilidad del kiosco: a diferencia del inglés temporal, esta
+ *  guía de voz se mantiene activa durante TODO el trámite (hasta imprimir la
+ *  ficha), porque quien la necesita para elegir su trámite también la
+ *  necesita para digitar su cédula y para escuchar el número de su ficha. */
+function botonAccesibilidadKioscoHTML(){
+  const on = !!ui.accesKiosco;
+  return '<button class="btn '+(on?'b-verde':'b-claro')+'" data-a="k-acces" style="flex:none;font-size:12.5px;padding:9px 14px">'+
+    ico('acceso',15)+' '+(on?'Guía de voz activada':'Accesibilidad: guía de voz')+'</button>';
+}
+
 /* ============================================================================
    AUTENTICACIÓN
    AVISO IMPORTANTE: en un archivo HTML sin servidor esto es una capa de
@@ -765,6 +907,27 @@ let demo = false;
 let vista = null;
 let ui = {};            // estado efímero de la interfaz
 let sesion = null;      // {correo, rol} — por pestaña
+
+/* ---------------- modo oscuro ---------------- */
+/** Preferencia de color por EQUIPO (localStorage, no por pestaña): cada
+ *  pantalla física (kiosco, ventanilla, tablet de administración) recuerda
+ *  su propio modo claro/oscuro entre recargas, igual que ya hacía el resto
+ *  del estado. Se aplica como atributo en <html> para que todo el CSS que
+ *  ya usa variables (--panel, --texto, --dim, etc.) cambie de paleta solo
+ *  con esa marca, sin tocar cada pantalla una por una. */
+let tema = 'claro';
+function aplicarTema(){
+  document.documentElement.setAttribute('data-tema', tema==='oscuro'?'oscuro':'claro');
+}
+function cargarTema(){
+  try{ tema = localStorage.getItem(CLAVE_TEMA)==='oscuro' ? 'oscuro' : 'claro'; }catch(e){}
+  aplicarTema();
+}
+function alternarTema(){
+  tema = tema==='oscuro' ? 'claro' : 'oscuro';
+  try{ localStorage.setItem(CLAVE_TEMA, tema); }catch(e){}
+  aplicarTema();
+}
 
 async function cargar(){
   try{
@@ -811,7 +974,7 @@ async function cargarCatalogo(){
     E.sucursales = conPuestos;
     E.tramites = tramites.map(function(t){ return {id:t.id, letra:t.letra, nombre:t.nombre, icono:t.icono}; });
     if (preguntas) E.config.encuestas = Object.assign({}, E.config.encuestas, {
-      preguntas: preguntas.map(function(p){ return {id:p.id, texto:p.texto}; })
+      preguntas: preguntas.map(function(p){ return {id:p.id, texto:p.texto, textoEn:p.texto_en}; })
     });
     if (canales) E.config.encuestas = Object.assign({}, E.config.encuestas, { plataformas: canales });
     if (cfg){
@@ -891,7 +1054,7 @@ function mapTurnoDesdeAPI(t){
     puestoId:t.puesto_id, puestoNombre:t.puesto_nombre, desborde:t.desborde,
     seccionId:t.seccion_id, seccionNombre:t.seccion_nombre, atendidoPor:t.atendido_por,
     horaCreado:t.hora_creado, horaLlamado:t.hora_llamado, horaAtencion:t.hora_atencion,
-    horaFinalizado:t.hora_finalizado
+    horaFinalizado:t.hora_finalizado, idioma:t.idioma
   };
 }
 function mapPuestoDesdeAPI(p){
@@ -1038,6 +1201,14 @@ function itemPantallaCompletaMenu(){
     icono: activa?'close_fullscreen':'fullscreen',
     texto: activa?'Salir de pantalla completa':'Ampliar pantalla'};
 }
+/** Ítem del menú para alternar modo oscuro/claro — la preferencia queda
+ *  guardada por equipo (ver cargarTema/alternarTema), no por usuario. */
+function itemTemaMenu(){
+  const osc = tema==='oscuro';
+  return {accion:'toggle-tema', material:false,
+    icono: osc?'sol':'luna',
+    texto: osc?'Modo claro':'Modo oscuro'};
+}
 
 function pintar(){
   /* Pantallas previas al sistema: nadie entra sin identificarse. En producción
@@ -1087,6 +1258,7 @@ function pintar(){
         (demo?'<div style="font-size:11px;opacity:.8;font-style:italic">modo demostración</div>':'')+
         '<div style="font-size:11px;opacity:.85">'+ico('user',11)+' '+esc(usuarioCorto(sesion.correo))+'</div>'+
       '</div>'+
+      (controlesFijos ? '<button class="btn-icono" data-a="toggle-tema" title="'+esc(itemTemaMenu().texto)+'">'+ico(itemTemaMenu().icono,17)+'</button>' : '')+
       (controlesFijos ? '<button class="btn-icono" data-a="pantalla-completa" title="'+esc(itemPantallaCompletaMenu().texto)+'">'+
           '<span class="msym" style="font-size:18px">'+itemPantallaCompletaMenu().icono+'</span></button>' : '')+
       (controlesFijos ? '<button class="btn" data-a="salir" style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.45);font-size:12px">'+
@@ -1094,10 +1266,12 @@ function pintar(){
       (controlesFijos ? '<button class="btn" data-a="cerrar-sesion" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.45);font-size:12px">Cerrar sesión</button>' : '')+
       (pedirPinAdmin ? '<button class="btn" data-a="cerrar-sesion" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.45);font-size:12px">Cerrar sesión</button>'+
           botonMenuOpcionesHTML(true)+menuOpcionesHTML([
+            itemTemaMenu(),
             itemPantallaCompletaMenu(),
             {accion:'salir-confirmado', material:true, icono:'exit_to_app', texto:'Cambiar pantalla'}
           ]) : '')+
       (!controlesFijos && !pedirPinAdmin && (equipo||demo) && !publica ? botonMenuOpcionesHTML(false)+menuOpcionesHTML([
+          itemTemaMenu(),
           itemPantallaCompletaMenu(),
           {accion:'salir', material:true, icono:'exit_to_app', texto:'Cambiar pantalla'},
           {accion:'cerrar-sesion', material:true, icono:'exit_to_app', texto:'Cerrar sesión'}
@@ -1107,6 +1281,7 @@ function pintar(){
          acceso a "ampliar pantalla" / "cambiar pantalla" sigue protegido
          por el mismo PIN, sin dejar un ícono de personal visible al público. */
       (!controlesFijos && publica ? menuOpcionesHTML([
+          itemTemaMenu(),
           itemPantallaCompletaMenu(),
           {accion:'salir-confirmado', material:true, icono:'exit_to_app', texto:'Cambiar pantalla'}
         ]) : '')+
@@ -1257,12 +1432,93 @@ function vistaRegistro(){
 /* ---------------- kiosco ---------------- */
 function sucKiosco(){ return (equipo&&equipo.sucursalId) || E.sucursales[0].id; }
 
+/** Inglés temporal del kiosco: se activa con un botón en las pantallas donde
+ *  el asociado ELIGE su trámite (ui.idiomaKiosko==='en'), para poder atender
+ *  a alguien que no habla español sin tocar Administración. Ahí se apaga
+ *  solo — vuelve a español — apenas se toca un trámite (ver 'k-tramite') o
+ *  si se reinicia el kiosco, así el resto de las pantallas DEL KIOSCO nunca
+ *  quedan en inglés. Pero el idioma elegido SÍ viaja con la ficha (turno.idioma,
+ *  ver emitirFicha) para que la pantalla de sala y la encuesta de satisfacción
+ *  de ESE turno en particular puedan seguir en inglés — sin afectar a nadie
+ *  más en la sala ni el idioma del kiosco para el siguiente asociado. Este
+ *  mismo diccionario cubre los textos fijos de las tres pantallas (kiosco,
+ *  sala, encuesta); las preguntas de la encuesta se traducen aparte (ver
+ *  encuesta_preguntas.texto_en) porque las escribe Administración, no
+ *  este archivo. */
+const TRADUCCIONES_EN = {
+  '¿Qué trámite desea realizar?':'What service do you need?',
+  'Toque el servicio que necesita':'Touch the service you need',
+  'Trámites preferenciales — Ley 7600':'Priority service — Law 7600',
+  'Personas con discapacidad, adultas mayores, mujeres embarazadas o con niños en brazos':
+    'People with disabilities, older adults, pregnant women, or those carrying infants',
+  'Trámites':'Services',
+  'preferenciales':'priority',
+  'opciones':'options',
+  'Atención preferencial':'Priority service',
+  'Ley 7600':'Law 7600',
+  'Ficha':'Ticket',
+  'Volver a trámites':'Back to services',
+  'Volver al inicio':'Back to home',
+  'Volver':'Back',
+  'Electricidad':'Electricity',
+  'Internet':'Internet',
+  'Televisión':'TV',
+  'Pagos':'Payments',
+  'Consultas':'Inquiries',
+  'Fondo Mutual':'Mutual Fund',
+  // --- pantalla de sala (solo el bloque "ATENDIENDO AHORA" del turno en inglés) ---
+  'ATENDIENDO AHORA':'NOW SERVING',
+  'PREFERENCIAL · LEY 7600':'PRIORITY · LAW 7600',
+  'TURNO':'TICKET',
+  'CAJA':'REGISTER',
+  'VENTANILLA':'WINDOW',
+  // --- encuesta de satisfacción ---
+  'La encuesta se habilitará cuando inicie una atención en':'The survey will be enabled once service starts at',
+  'Encuesta ya registrada':'Survey already recorded',
+  'Ya se recibió una respuesta para este turno. ¡Muchas gracias por su colaboración!':
+    'A response was already received for this ticket. Thank you very much for your cooperation!',
+  'Estimado Participante':'Dear Participant',
+  'Valoramos mucho su opinión y nos sería de gran utilidad si pudiera responder esta breve encuesta.':
+    'We greatly value your opinion, and it would help us a lot if you could answer this short survey.',
+  'Haga clic en cualquier parte de la pantalla para comenzar':'Tap anywhere on the screen to begin',
+  'No hay preguntas configuradas todavía. Actívelas desde Administración → Encuestas.':
+    'No questions have been configured yet. Enable them from Administration → Surveys.',
+  'Siguiente':'Next',
+  'Enviar Encuesta':'Submit Survey',
+  'Turno atendido':'Ticket served',
+  '¡Muchas gracias!':'Thank you very much!',
+  'Agradecemos el tiempo brindado para responder esta encuesta. Su opinión nos ayuda a mejorar el servicio.':
+    'We appreciate the time you took to answer this survey. Your feedback helps us improve our service.',
+  'Muy Satisfecho':'Very Satisfied', 'Satisfecho':'Satisfied', 'Neutral':'Neutral',
+  'Insatisfecho':'Dissatisfied', 'Muy Insatisfecho':'Very Dissatisfied'
+};
+/** Traduce un texto fijo si "idioma" es 'en'; si no hay traducción
+ *  registrada (p.ej. un trámite agregado desde Administración con nombre
+ *  propio), se muestra tal cual — nunca queda vacío. Se llama "trIdioma" y
+ *  no "tr" a propósito: "tr" ya se usa en decenas de lugares de este archivo
+ *  como variable local para "el trámite encontrado" (const tr = E.tramites.find(...)),
+ *  y reusar ese nombre para la función de traducción habría sido una fuente
+ *  segura de bugs por sombra de variables. */
+function trIdioma(s, idioma){ return (idioma==='en') ? (TRADUCCIONES_EN[s]||s) : s; }
+/** Atajo para el kiosco: traduce según el inglés temporal de ESTA pantalla
+ *  (ui.idiomaKiosko), no el idioma guardado en un turno ya emitido. */
+function trK(s){ return trIdioma(s, ui.idiomaKiosko); }
+/** Botón para activar/desactivar el inglés temporal, visible únicamente en
+ *  las pantallas de elegir trámite. */
+function botonIdiomaKioscoHTML(){
+  const en = ui.idiomaKiosko==='en';
+  return '<button class="btn b-claro" data-a="k-idioma" style="flex:none;font-size:12.5px;padding:9px 14px">'+
+    ico('idioma',15)+' '+(en?'Español':'English')+'</button>';
+}
+
 function vistaKiosco(){
   const suc = sucKiosco(), sucObj = E.sucursales.find(s=>s.id===suc);
   const paso = ui.paso || 'bienvenida';
   const enCola = ui.kioscoEnCola||0;
 
   if (paso==='bienvenida'){
+    narrarAccesibilidad('bienvenida',
+      'Bienvenido a '+sucObj.nombre+'. Toque en cualquier parte de la pantalla para tomar su ficha.');
     return '<div class="entra" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px;align-items:stretch;min-height:480px">'+
       /* Izquierda: bienvenida y botón para tomar ficha */
       '<div class="card" style="border-radius:18px;padding:0;display:flex;flex-direction:column;overflow:hidden">'+
@@ -1275,6 +1531,8 @@ function vistaKiosco(){
           '<div style="font-size:15px;color:var(--dim);margin-bottom:20px">'+
             esc(sucObj.nombre)+'<br>'+enCola+(enCola===1?' persona en espera':' personas en espera')+'</div>'+
           '<button class="btn b-azul" data-a="k-inicio" style="width:100%;padding:20px 24px;font-size:19px;border-radius:12px;justify-content:center;font-weight:700;box-shadow:0 5px 14px rgba(0,86,143,.24)">'+ico('ticket',24)+' Toque aquí para tomar su ficha</button>'+
+          '<button class="btn '+(ui.accesKiosco?'b-verde':'b-claro')+'" data-a="k-acces" style="width:100%;margin-top:10px;padding:11px 0;justify-content:center;font-size:13px">'+
+            ico('acceso',15)+' '+(ui.accesKiosco?'Guía de voz activada':'Accesibilidad: guía de voz')+'</button>'+
         '</div>'+
       '</div>'+
       /* Derecha: espacio publicitario, mismas piezas que la pantalla de sala */
@@ -1289,46 +1547,60 @@ function vistaKiosco(){
        la pantalla principal de elección — igual en la rama preferencial. */
     const pago = E.tramites.find(function(t){ return t.id==='P'; });
     const resto = E.tramites.filter(function(t){ return t.id!=='P'; });
+    narrarAccesibilidad(paso,
+      (pref ? 'Trámites preferenciales, Ley 7600, para personas con discapacidad, adultas mayores, mujeres embarazadas o con niños en brazos. '
+            : '¿Qué trámite desea realizar? ')+
+      'Las opciones son: '+[pago?pago.nombre:null, resto.length?('Trámites, con '+resto.length+' opciones más'):null,
+        !pref?'Atención preferencial, Ley 7600':null].filter(Boolean).join('. ')+'. Toque la opción que necesita.');
     let h = '<div class="entra'+(pref?' pref':'')+'" style="max-width:720px;margin:0 auto">'+
-      tituloPaso(pref?'Trámites preferenciales — Ley 7600':'¿Qué trámite desea realizar?',
-        pref?'Personas con discapacidad, adultas mayores, mujeres embarazadas o con niños en brazos':'Toque el servicio que necesita',
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">'+
+      tituloPaso(trK(pref?'Trámites preferenciales — Ley 7600':'¿Qué trámite desea realizar?'),
+        trK(pref?'Personas con discapacidad, adultas mayores, mujeres embarazadas o con niños en brazos':'Toque el servicio que necesita'),
         pref?'var(--verde)':'var(--azul)')+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">'+botonIdiomaKioscoHTML()+botonAccesibilidadKioscoHTML()+'</div>'+
+      '</div>'+
       '<div class="grid-tiles" style="margin-top:18px">';
     if (pago){
       h += '<button class="tile tile-tram" data-a="k-tramite" data-v="'+pago.id+'" data-t="'+(pref?1:0)+'">'+
         '<span class="circ">'+ico(pago.icono||'tarjeta',38)+'</span>'+
-        '<span style="font-size:19px;font-weight:700">'+esc(pago.nombre)+'</span>'+
-        '<span style="font-size:14.5px;color:var(--dim)">Ficha '+(pref?'PREF':pago.letra)+'</span></button>';
+        '<span style="font-size:19px;font-weight:700">'+esc(trK(pago.nombre))+'</span>'+
+        '<span style="font-size:14.5px;color:var(--dim)">'+esc(trK('Ficha'))+' '+(pref?'PREF':pago.letra)+'</span></button>';
     }
     if (resto.length){
       h += '<button class="tile tile-tram" data-a="k-paso" data-v="'+(pref?'preferencial-tramites':'tramite-tramites')+'">'+
         '<span class="circ">'+ico('rejilla',38)+'</span>'+
-        '<span style="font-size:19px;font-weight:700">Trámites</span>'+
-        '<span style="font-size:14.5px;color:var(--dim)">'+resto.length+' opciones</span></button>';
+        '<span style="font-size:19px;font-weight:700">'+esc(trK('Trámites'))+'</span>'+
+        '<span style="font-size:14.5px;color:var(--dim)">'+resto.length+' '+esc(trK('opciones'))+'</span></button>';
     }
     if (!pref){
       h += '<button class="tile tile-tram tile-pref" data-a="k-paso" data-v="preferencial">'+
         '<span class="circ">'+ico('acceso',38)+'</span>'+
-        '<span style="font-size:19px;font-weight:700;color:var(--verde-osc)">Atención preferencial</span>'+
-        '<span style="font-size:14.5px;color:var(--dim)">Ley 7600</span></button>';
+        '<span style="font-size:19px;font-weight:700;color:var(--verde-osc)">'+esc(trK('Atención preferencial'))+'</span>'+
+        '<span style="font-size:14.5px;color:var(--dim)">'+esc(trK('Ley 7600'))+'</span></button>';
     }
-    h += '</div>'+navegacion(pref?'k-paso':'k-reiniciar', pref?'tramite':'', pref?'Volver a trámites':'Volver al inicio')+'</div>';
+    h += '</div>'+navegacion(pref?'k-paso':'k-reiniciar', pref?'tramite':'', trK(pref?'Volver a trámites':'Volver al inicio'))+'</div>';
     return h;
   }
 
   if (paso==='tramite-tramites' || paso==='preferencial-tramites'){
     const pref = paso==='preferencial-tramites';
     const resto = E.tramites.filter(function(t){ return t.id!=='P'; });
+    narrarAccesibilidad(paso,
+      'Trámites'+(pref?' preferenciales':'')+'. Las opciones son: '+resto.map(function(t){ return t.nombre; }).join(', ')+
+      '. Toque la opción que necesita.');
     let h = '<div class="entra'+(pref?' pref':'')+'" style="max-width:720px;margin:0 auto">'+
-      tituloPaso('Trámites'+(pref?' preferenciales':''), 'Toque el servicio que necesita', pref?'var(--verde)':'var(--azul)')+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">'+
+      tituloPaso(trK('Trámites')+(pref?' '+trK('preferenciales'):''), trK('Toque el servicio que necesita'), pref?'var(--verde)':'var(--azul)')+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">'+botonIdiomaKioscoHTML()+botonAccesibilidadKioscoHTML()+'</div>'+
+      '</div>'+
       '<div class="grid-tiles" style="margin-top:18px">';
     resto.forEach(function(t){
       h += '<button class="tile tile-tram" data-a="k-tramite" data-v="'+t.id+'" data-t="'+(pref?1:0)+'">'+
         '<span class="circ">'+ico(t.icono||'ayuda',38)+'</span>'+
-        '<span style="font-size:19px;font-weight:700">'+esc(t.nombre)+'</span>'+
-        '<span style="font-size:14.5px;color:var(--dim)">Ficha '+(pref?'PREF':t.letra)+'</span></button>';
+        '<span style="font-size:19px;font-weight:700">'+esc(trK(t.nombre))+'</span>'+
+        '<span style="font-size:14.5px;color:var(--dim)">'+esc(trK('Ficha'))+' '+(pref?'PREF':t.letra)+'</span></button>';
     });
-    h += '</div>'+navegacion('k-paso', pref?'preferencial':'tramite','Volver')+'</div>';
+    h += '</div>'+navegacion('k-paso', pref?'preferencial':'tramite',trK('Volver'))+'</div>';
     return h;
   }
 
@@ -1336,6 +1608,9 @@ function vistaKiosco(){
     const tr = E.tramites.find(t=>t.id===ui.tramiteId);
     const d = (ui.cedula||'').replace(/\D/g,'');
     const teclas = ['1','2','3','4','5','6','7','8','9','limpiar','0','borrar'];
+    narrarAccesibilidad('cedula:'+ui.tramiteId+':'+(ui.pref?1:0),
+      'Trámite seleccionado: '+(tr?tr.nombre:'')+(ui.pref?', preferencial, Ley 7600':'')+
+      '. Puede digitar su número de cédula en el teclado de la pantalla, o tocar continuar sin cédula.');
     let h = '<div class="entra" style="max-width:480px;margin:0 auto">'+
       tituloPaso('Digite su número de cédula','Se usa únicamente para el registro del trámite. Este paso es opcional.',
         ui.pref?'var(--verde)':'var(--azul)')+
@@ -1361,6 +1636,10 @@ function vistaKiosco(){
   const t = ui.ticket;
   if (!t){ ui.paso='bienvenida'; return vistaKiosco(); }
   const tr = E.tramites.find(x=>x.id===t.tramiteId);
+  narrarAccesibilidad('ticket:'+t.folio,
+    'Su ficha es '+prefijoHablado(t.folio)+', '+numLetras(parseInt(t.folio.split('-')[1],10))+'. Para '+t.tramiteNombre+
+    '. Hay '+Math.max(0,enCola-1)+(Math.max(0,enCola-1)===1?' persona antes que usted':' personas antes que usted')+
+    '. Guarde su ficha impresa.');
   return '<div class="entra" style="display:flex;justify-content:center">'+
     '<div class="card" style="text-align:center;max-width:400px;width:100%;padding:30px 36px;border-top:6px solid '+(t.preferencial?'var(--verde)':'var(--azul)')+'">'+
       (t.preferencial?'<div style="display:inline-flex;align-items:center;gap:6px;background:var(--verde);color:#fff;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:10px">'+ico('acceso',13)+' PREFERENCIAL · LEY 7600</div>':'')+
@@ -1446,23 +1725,30 @@ function vistaSala(){
 
   /* Columna izquierda */
   h += '<div style="display:flex;flex-direction:column;gap:14px">';
+  // Si ESTE turno se tomó en inglés en el kiosco (act.idioma==='en'), solo el
+  // bloque "ATENDIENDO AHORA" — lo que corresponde a su propia atención —
+  // se muestra en inglés; el resto de la sala (selector de área, tabla de
+  // últimos llamados, etc.) sigue en español porque sirve a todos los demás
+  // presentes, no solo a este asociado.
+  const idiomaAct = act && act.idioma;
   h += '<div class="card" style="padding:0;overflow:hidden;border-top:6px solid '+(act&&act.preferencial?'var(--verde)':'var(--azul-osc)')+'">'+
     '<div style="background:linear-gradient(150deg,var(--azul-osc) 0%,var(--azul) 55%,var(--azul-cla) 100%);color:#fff;padding:26px 22px">'+
-    '<div style="text-align:center;font-size:15px;letter-spacing:3px;color:rgba(255,255,255,.85);font-weight:700;margin-bottom:14px">ATENDIENDO AHORA</div>';
+    '<div style="text-align:center;font-size:15px;letter-spacing:3px;color:rgba(255,255,255,.85);font-weight:700;margin-bottom:14px">'+trIdioma('ATENDIENDO AHORA',idiomaAct)+'</div>';
   if (act){
-    h += (act.preferencial?'<div style="text-align:center;margin-bottom:10px"><span style="display:inline-flex;align-items:center;gap:6px;background:#fff;color:var(--verde-osc);padding:5px 14px;border-radius:20px;font-size:13px;font-weight:700">'+ico('acceso',15)+' PREFERENCIAL · LEY 7600</span></div>':'')+
+    h += (act.preferencial?'<div style="text-align:center;margin-bottom:10px"><span style="display:inline-flex;align-items:center;gap:6px;background:#fff;color:var(--verde-osc);padding:5px 14px;border-radius:20px;font-size:13px;font-weight:700">'+ico('acceso',15)+' '+trIdioma('PREFERENCIAL · LEY 7600',idiomaAct)+'</span></div>':'')+
       '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px">'+
         '<div style="text-align:center">'+
-          '<div style="font-size:13px;color:rgba(255,255,255,.8);letter-spacing:1px;margin-bottom:4px;font-weight:600">TURNO</div>'+
+          '<div style="font-size:13px;color:rgba(255,255,255,.8);letter-spacing:1px;margin-bottom:4px;font-weight:600">'+trIdioma('TURNO',idiomaAct)+'</div>'+
           '<div class="num-grande '+(act.llamados>1?'pulso':'')+'" style="font-size:clamp(40px,5vw,82px);font-weight:800;color:#fff;letter-spacing:1px;line-height:1.05;white-space:nowrap;text-shadow:0 2px 10px rgba(0,20,40,.25)">'+act.folio+'</div>'+
         '</div>'+
         '<div style="width:2px;align-self:stretch;background:rgba(255,255,255,.3)"></div>'+
         '<div style="text-align:center">'+
-          '<div style="font-size:13px;color:rgba(255,255,255,.8);letter-spacing:1px;margin-bottom:4px;font-weight:600">'+(esPagos?'CAJA':'VENTANILLA')+'</div>'+
+          '<div style="font-size:13px;color:rgba(255,255,255,.8);letter-spacing:1px;margin-bottom:4px;font-weight:600">'+trIdioma(esPagos?'CAJA':'VENTANILLA',idiomaAct)+'</div>'+
           '<div class="num-grande" style="font-size:clamp(20px,2.3vw,36px);font-weight:800;color:#fff;line-height:1.15;white-space:nowrap">'+esc(act.puestoNombre)+'</div>'+
         '</div>'+
       '</div>'+
-      '<div style="text-align:center;font-size:14px;color:rgba(255,255,255,.8);margin-top:14px">Llamado '+act.llamados+' de '+MAX_LLAMADOS+' · '+hhmmss(act.horaLlamado)+'</div>';
+      '<div style="text-align:center;font-size:14px;color:rgba(255,255,255,.8);margin-top:14px">'+
+        (idiomaAct==='en' ? ('Call '+act.llamados+' of '+MAX_LLAMADOS) : ('Llamado '+act.llamados+' de '+MAX_LLAMADOS))+' · '+hhmmss(act.horaLlamado)+'</div>';
   } else h += '<div style="text-align:center;padding:38px 0;color:rgba(255,255,255,.85);font-size:19px">Sin fichas en llamado</div>';
   h += '</div></div>';
 
@@ -1710,7 +1996,7 @@ async function refrescarEncuestas(){
   const suc = (equipo&&equipo.sucursalId)||E.sucursales[0].id;
   try{
     const t = await api('/api/sucursales/'+suc+'/turno-en-atencion/'+puestoId);
-    const nuevo = t ? {id:t.id, folio:t.folio, tramiteNombre:t.tramite_nombre} : null;
+    const nuevo = t ? {id:t.id, folio:t.folio, tramiteNombre:t.tramite_nombre, idioma:t.idioma} : null;
     // Si la encuesta se quedó a medio llenar (paso 'form') para un turno que
     // ya no es el que se está atendiendo — se abandonó sin enviarla y el
     // puesto pasó a la siguiente persona—, no se queda pegada esperando a
@@ -1775,6 +2061,12 @@ function vistaEncuestas(){
   const puesto = puestoId ? puestoPorId(puestoId) : null;
   const plataforma = (equipo&&equipo.plataforma) || (puesto?puesto.nombre:'Encuesta');
   const paso = ui.encPaso || 'idle';
+  // Idioma de ESTA encuesta en particular: el que traiga el turno ya fijado
+  // (ui.encTurno, mientras se responde) o, antes de arrancar, el del turno
+  // que se está atendiendo ahora mismo (ui.encTurnoActivo) — nunca un ajuste
+  // global de la tablet, así que cada turno se encuesta en su propio idioma.
+  const idiomaEnc = (ui.encTurno && ui.encTurno.idioma) || (ui.encTurnoActivo && ui.encTurnoActivo.idioma) || null;
+  const trE = function(s){ return trIdioma(s, idiomaEnc); };
 
   /* --- Pantalla de bienvenida: toda la pantalla es el botón de inicio --- */
   if (paso==='idle'){
@@ -1786,7 +2078,7 @@ function vistaEncuestas(){
       return '<div class="entra" style="min-height:520px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 30px">'+
         '<div style="margin-bottom:24px;opacity:.5">'+logoHTML(52,false)+'</div>'+
         '<div style="font-size:20px;color:var(--dim);max-width:520px;line-height:1.6">'+
-          'La encuesta se habilitará cuando inicie una atención en '+esc(plataforma)+'.</div>'+
+          trE('La encuesta se habilitará cuando inicie una atención en')+' '+esc(plataforma)+'.</div>'+
         '<div style="margin-top:16px;font-size:14px;color:var(--dim);opacity:.75">'+esc(sucObj?sucObj.nombre:'')+'</div>'+
       '</div>';
     }
@@ -1798,8 +2090,8 @@ function vistaEncuestas(){
     if (yaRespondida){
       return '<div class="entra" style="min-height:520px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 30px">'+
         '<div style="width:72px;height:72px;border-radius:50%;background:var(--verde);color:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:20px">'+ico('check',36)+'</div>'+
-        '<div style="font-size:23px;font-weight:700;color:var(--azul-osc);margin-bottom:8px">Encuesta ya registrada</div>'+
-        '<div style="font-size:16px;color:var(--dim);max-width:520px;line-height:1.6">Ya se recibió una respuesta para este turno. ¡Muchas gracias por su colaboración!</div>'+
+        '<div style="font-size:23px;font-weight:700;color:var(--azul-osc);margin-bottom:8px">'+trE('Encuesta ya registrada')+'</div>'+
+        '<div style="font-size:16px;color:var(--dim);max-width:520px;line-height:1.6">'+trE('Ya se recibió una respuesta para este turno. ¡Muchas gracias por su colaboración!')+'</div>'+
         '<div style="margin-top:16px;font-size:14px;color:var(--dim);opacity:.75">'+esc(sucObj?sucObj.nombre:'')+' · '+esc(plataforma)+'</div>'+
       '</div>';
     }
@@ -1807,12 +2099,12 @@ function vistaEncuestas(){
     // para que no cambie a media respuesta si llega otro turno en ese puesto.
     return '<div class="entra" data-a="enc-iniciar" style="cursor:pointer;min-height:520px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 30px">'+
       '<div style="margin-bottom:26px">'+logoHTML(56,false)+'</div>'+
-      '<div style="font-size:28px;font-weight:700;color:var(--azul-osc);margin-bottom:14px">Estimado Participante</div>'+
+      '<div style="font-size:28px;font-weight:700;color:var(--azul-osc);margin-bottom:14px">'+trE('Estimado Participante')+'</div>'+
       '<div style="font-size:18px;color:var(--texto);max-width:640px;line-height:1.6;margin-bottom:10px">'+
-        'Valoramos mucho su opinión y nos sería de gran utilidad si pudiera responder esta breve encuesta.</div>'+
+        trE('Valoramos mucho su opinión y nos sería de gran utilidad si pudiera responder esta breve encuesta.')+'</div>'+
       '<div style="font-size:15px;color:var(--dim);margin-top:20px">'+esc(sucObj?sucObj.nombre:'')+' · '+esc(plataforma)+'</div>'+
       '<div style="margin-top:34px;display:inline-flex;align-items:center;gap:10px;background:var(--azul);color:#fff;padding:16px 30px;border-radius:12px;font-size:17px;font-weight:700;box-shadow:0 6px 16px rgba(0,86,143,.28)" class="pulso">'+
-        ico('carita',22)+' Haga clic en cualquier parte de la pantalla para comenzar</div>'+
+        ico('carita',22)+' '+trE('Haga clic en cualquier parte de la pantalla para comenzar')+'</div>'+
     '</div>';
   }
 
@@ -1822,6 +2114,11 @@ function vistaEncuestas(){
     const turnoRef = ui.encTurno; // fijado al iniciar, ver 'enc-iniciar'
     const idx = Math.min(ui.encIndice||0, Math.max(0,preguntas.length-1));
     const p = preguntas[idx];
+    // Si Administración cargó una traducción para esta pregunta (p.textoEn) y
+    // esta encuesta es en inglés, se usa esa; si no hay traducción propia,
+    // se muestra en español antes que dejarla en blanco (no hay traductor
+    // automático real en el sistema).
+    const textoPregunta = p ? (idiomaEnc==='en' ? (p.textoEn||p.texto) : p.texto) : '';
     const val = p ? respuestas[p.id] : null;
     const esUltima = idx === preguntas.length-1;
     const respondida = !!val;
@@ -1830,36 +2127,37 @@ function vistaEncuestas(){
     h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">'+
       logoHTML(34,false)+
       '<div style="font-size:13px;color:var(--dim);text-align:right">'+esc(sucObj?sucObj.nombre:'')+' · '+esc(plataforma)+
-      (turnoRef?'<br>Turno atendido: <b style="color:var(--azul)">'+esc(turnoRef.folio)+'</b> · '+esc(turnoRef.tramiteNombre):'')+
+      (turnoRef?'<br>'+trE('Turno atendido')+': <b style="color:var(--azul)">'+esc(turnoRef.folio)+'</b> · '+esc(trIdioma(turnoRef.tramiteNombre,idiomaEnc)):'')+
       '</div></div>';
 
     if (!preguntas.length){
-      h += '<div class="card" style="padding:30px;text-align:center;color:var(--dim)">No hay preguntas configuradas todavía. Actívelas desde Administración → Encuestas.</div>'+
-        '<div style="text-align:center;margin-top:16px"><button class="btn b-claro" data-a="enc-volver">'+ico('atras',16)+' Volver</button></div></div>';
+      h += '<div class="card" style="padding:30px;text-align:center;color:var(--dim)">'+trE('No hay preguntas configuradas todavía. Actívelas desde Administración → Encuestas.')+'</div>'+
+        '<div style="text-align:center;margin-top:16px"><button class="btn b-claro" data-a="enc-volver">'+ico('atras',16)+' '+trE('Volver')+'</button></div></div>';
       return h;
     }
 
-    h += '<div style="text-align:center;font-size:12.5px;color:var(--dim);margin:6px 0 16px">Pregunta '+(idx+1)+' de '+preguntas.length+'</div>';
+    h += '<div style="text-align:center;font-size:12.5px;color:var(--dim);margin:6px 0 16px">'+
+      (idiomaEnc==='en' ? ('Question '+(idx+1)+' of '+preguntas.length) : ('Pregunta '+(idx+1)+' de '+preguntas.length))+'</div>';
     if (ui.encError) h += '<div style="background:#FDECEA;border:1px solid #F3C4C0;color:var(--rojo);border-radius:6px;padding:9px 12px;font-size:12.5px;margin-bottom:12px;text-align:center">'+esc(ui.encError)+'</div>';
 
     h += '<div class="card" style="padding:30px 22px;flex:1;display:flex;flex-direction:column;justify-content:center">'+
-      '<div style="font-size:21px;font-weight:600;margin-bottom:24px;color:var(--texto);text-align:center">'+esc(p.texto)+'</div>'+
+      '<div style="font-size:21px;font-weight:600;margin-bottom:24px;color:var(--texto);text-align:center">'+esc(textoPregunta)+'</div>'+
       '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">'+
       [5,4,3,2,1].map(function(v){
         const sel = val===v;
         return '<button class="tile" data-a="enc-responder" data-v="'+p.id+'" data-t="'+v+'" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 6px;border-radius:14px;cursor:pointer;'+
           'border:3px solid '+(sel?SATISFACCION[v].color:'var(--borde)')+';background:'+(sel?SATISFACCION[v].color+'1a':'var(--panel)')+'">'+
           caritaSVG(v,54)+
-          '<span style="font-size:12px;font-weight:'+(sel?'700':'500')+';color:'+(sel?SATISFACCION[v].color:'var(--dim)')+';text-align:center;line-height:1.25">'+SATISFACCION[v].etiqueta+'</span>'+
+          '<span style="font-size:12px;font-weight:'+(sel?'700':'500')+';color:'+(sel?SATISFACCION[v].color:'var(--dim)')+';text-align:center;line-height:1.25">'+trE(SATISFACCION[v].etiqueta)+'</span>'+
         '</button>';
       }).join('')+
       '</div></div>';
 
     /* Botones al centro: Volver siempre disponible; Siguiente/Enviar exige respuesta */
     h += '<div style="display:flex;justify-content:center;gap:14px;margin-top:22px">'+
-      '<button class="btn b-claro" data-a="enc-volver" style="padding:13px 26px;font-size:15px">'+ico('atras',17)+' Volver</button>'+
+      '<button class="btn b-claro" data-a="enc-volver" style="padding:13px 26px;font-size:15px">'+ico('atras',17)+' '+trE('Volver')+'</button>'+
       '<button class="btn" data-a="'+(esUltima?'enc-enviar':'enc-siguiente')+'" style="padding:13px 30px;font-size:15px;background:'+(respondida?'var(--verde)':'#C3D0DC')+';color:#fff"'+(respondida?'':' disabled')+'>'+
-      (esUltima?(ico('check',17)+' Enviar Encuesta'):(' Siguiente '+ico('adelante',17)))+'</button>'+
+      (esUltima?(ico('check',17)+' '+trE('Enviar Encuesta')):(' '+trE('Siguiente')+' '+ico('adelante',17)))+'</button>'+
     '</div>';
     h += '</div>';
     return h;
@@ -1868,8 +2166,8 @@ function vistaEncuestas(){
   /* --- Agradecimiento --- */
   return '<div class="entra" style="min-height:520px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px">'+
     '<div style="width:84px;height:84px;border-radius:50%;background:var(--verde);color:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:22px">'+ico('check',42)+'</div>'+
-    '<div style="font-size:27px;font-weight:700;color:var(--azul-osc);margin-bottom:10px">¡Muchas gracias!</div>'+
-    '<div style="font-size:16px;color:var(--dim);max-width:520px;line-height:1.6">Agradecemos el tiempo brindado para responder esta encuesta. Su opinión nos ayuda a mejorar el servicio.</div>'+
+    '<div style="font-size:27px;font-weight:700;color:var(--azul-osc);margin-bottom:10px">'+trE('¡Muchas gracias!')+'</div>'+
+    '<div style="font-size:16px;color:var(--dim);max-width:520px;line-height:1.6">'+trE('Agradecemos el tiempo brindado para responder esta encuesta. Su opinión nos ayuda a mejorar el servicio.')+'</div>'+
   '</div>';
 }
 
@@ -2701,8 +2999,8 @@ function vistaAdmin(){
     /* --- Tendencia principal: volumen por tipo de trámite --- */
     h += '<div class="card-rep" style="padding:18px;margin-bottom:16px">'+
       tituloSeccionHTML('monitor','Fichas emitidas por tipo de trámite','var(--azul)')+
-      '<p style="font-size:11.5px;color:var(--dim);margin:0 0 6px">Cada barra es un '+(A.gran==='anio'?'año':(A.gran==='mes'?'mes':'día'))+' del período — pase el cursor sobre una barra para ver el detalle completo de ese '+(A.gran==='anio'?'año':(A.gran==='mes'?'mes':'día'))+'.</p>'+
-      chartBarrasHTML(serie, 'fichas', {apilar:true, alto:230})+'</div>';
+      '<p style="font-size:11.5px;color:var(--dim);margin:0 0 6px">Cada barra es un '+(A.gran==='anio'?'año':(A.gran==='mes'?'mes':'día'))+' del período. Clic en una barra para ver el detalle completo de ese '+(A.gran==='anio'?'año':(A.gran==='mes'?'mes':'día'))+', incluidas sus fichas y sus tiempos de atención por hora.</p>'+
+      chartBarrasHTML(serie, 'fichas', {apilar:true, alto:230, clickTipo:'periodo'})+'</div>';
 
     /* --- Dos columnas: mezcla de trámites y satisfacción --- */
     h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px;margin-bottom:16px">';
@@ -3027,10 +3325,16 @@ function vistaAdmin(){
     h += '<div class="card" style="padding:16px;margin-bottom:14px"><div class="sec" style="margin-top:0">'+ico('cog',13)+' Configuración de la encuesta</div>'+
       '<p style="font-size:12px;color:var(--dim);margin:0 0 14px;line-height:1.5">Cada tablet de encuestas se registra atada a una ventanilla o caja concreta (o a un canal remoto). La encuesta solo se habilita mientras esa ventanilla o caja tiene un turno en atención.</p>';
     h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">';
-    h += '<div><div class="sec" style="margin-top:0">Preguntas de la encuesta</div>';
+    h += '<div><div class="sec" style="margin-top:0">Preguntas de la encuesta</div>'+
+      '<p style="font-size:11px;color:var(--dim);margin:-4px 0 8px;line-height:1.4">Si un turno se tomó en inglés en el kiosco, su encuesta usa la traducción de abajo para esa pregunta; si la deja vacía, esa encuesta muestra la pregunta en español.</p>';
     (cfgEnc.preguntas||[]).forEach(function(p,i){
-      h += '<div class="fila"><span>'+(i+1)+'. '+esc(p.texto)+'</span>'+
-        '<button class="btn" data-a="enc-quitar-pregunta" data-v="'+p.id+'" style="background:none;color:var(--dim);padding:3px">'+ico('basura',13)+'</button></div>';
+      h += '<div class="card" style="padding:10px 12px;margin-bottom:8px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'+
+          '<span style="font-size:13px">'+(i+1)+'. '+esc(p.texto)+'</span>'+
+          '<button class="btn" data-a="enc-quitar-pregunta" data-v="'+p.id+'" style="background:none;color:var(--dim);padding:3px;flex:none">'+ico('basura',13)+'</button>'+
+        '</div>'+
+        '<input data-a="adm-pregunta-en" data-v="'+p.id+'" placeholder="Traducción al inglés (opcional)" value="'+esc(p.textoEn||'')+'" style="margin-top:8px;font-size:12px">'+
+      '</div>';
     });
     if (!(cfgEnc.preguntas||[]).length) h += '<div class="vacio">Sin preguntas configuradas.</div>';
     h += '<div style="display:flex;gap:6px;margin-top:8px">'+
@@ -3371,8 +3675,30 @@ function vistaAdmin(){
       const latino = todas.filter(v=>esLatino(v)&&!costaRica.includes(v));
       const espana = todas.filter(v=>esEspana(v));
       const otras = todas.filter(v=>costaRica.indexOf(v)<0&&latino.indexOf(v)<0&&espana.indexOf(v)<0);
-      const opt = v => '<option value="'+esc(v.name)+'"'+(c.vozNombre===v.name?' selected':'')+'>'+esc(v.name)+' — '+esc(v.lang)+'</option>';
-      let s = '<label class="lbl">Voz del llamado</label>'+
+      const etiquetaGenero = function(v){ const g=generoVoz(v); return g==='M'?' · masculina':(g==='F'?' · femenina':''); };
+      const opt = v => '<option value="'+esc(v.name)+'"'+(c.vozNombre===v.name?' selected':'')+'>'+esc(v.name)+' — '+esc(v.lang)+etiquetaGenero(v)+'</option>';
+      // Atajo para encontrar rápido una voz masculina en español latino de
+      // buena calidad (se pidió explícitamente: "voces masculinas, latinas,
+      // como la de Pablo" — Pablo es una voz neuronal de España; su
+      // equivalente en español latino son estas mismas voces neuronales de
+      // Microsoft, con nombre de hombre, ya en la lista de arriba). Solo
+      // aparecen las que este equipo YA tiene instaladas — nada se inventa.
+      const masculinasLatino = costaRica.concat(latino).filter(v=>generoVoz(v)==='M').slice(0,6);
+      let s = '';
+      if (masculinasLatino.length){
+        s += '<label class="lbl" style="margin-top:0">Voces masculinas en español latino detectadas en este equipo</label>'+
+          '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">'+
+          masculinasLatino.map(function(v){
+            const activa = c.vozNombre===v.name;
+            return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;border:1px solid '+(activa?'var(--azul)':'var(--borde)')+';background:'+(activa?'var(--azul-suave)':'var(--panel)')+'">'+
+              '<span style="flex:1;font-size:12.5px;font-weight:'+(activa?'700':'500')+'">'+esc(v.name)+' <span style="color:var(--dim);font-weight:400">— '+esc(v.lang)+'</span></span>'+
+              '<button class="btn b-claro" data-a="adm-voz-probar" data-v="'+esc(v.name)+'" style="padding:5px 10px;font-size:11.5px">'+ico('play',12)+' Escuchar</button>'+
+              '<button class="btn '+(activa?'b-verde':'b-azul')+'" data-a="adm-voz-usar" data-v="'+esc(v.name)+'" style="padding:5px 10px;font-size:11.5px">'+(activa?ico('check',12)+' En uso':'Usar esta voz')+'</button>'+
+            '</div>';
+          }).join('')+
+          '</div>';
+      }
+      s += '<label class="lbl" style="margin-top:0">Voz del llamado</label>'+
         '<input type="text" placeholder="Buscar voz por nombre o idioma (ej. «Google», «Diego», «en-US»)…" '+
         'data-a="voz-buscar" style="margin-bottom:8px">'+
         '<select data-a="adm-voz" id="sel-voz"><option value="">Automática (español de Costa Rica si hay disponible, si no español latino)</option>';
@@ -4010,7 +4336,7 @@ function imprimirReporteEncuestas(filtro, tituloExtra){
     return '<div style="margin-bottom:5px">'+
       '<div style="display:flex;justify-content:space-between;font-size:10px"><span>'+esc(et)+'</span>'+
       '<span><b>'+val+'</b> ('+pct.toFixed(1)+'%)</span></div>'+
-      '<div style="height:7px;background:#EDF1F5;border-radius:4px"><div style="height:7px;width:'+pct.toFixed(1)+'%;background:'+color+';border-radius:4px"></div></div></div>';
+      '<div style="height:7px;background:var(--gris);border-radius:4px"><div style="height:7px;width:'+pct.toFixed(1)+'%;background:'+color+';border-radius:4px"></div></div></div>';
   };
   const seccion = function(titulo, contenido){
     return '<div style="break-inside:avoid;page-break-inside:avoid;margin-bottom:12px">'+
@@ -4296,6 +4622,37 @@ function modalDetalleReporte(tipo, clave){
   const turnos = M.turnos.slice().sort(function(a,b){ return new Date(b.horaCreado)-new Date(a.horaCreado); });
   const MOSTRAR = 60;
 
+  // Calificación de cada turno (promedio de sus respuestas, 1 a 5): un turno
+  // solo puede tener una encuesta (ver el índice único y la validación en
+  // POST /api/encuestas/respuestas), pero si quedó algún dato histórico
+  // duplicado de antes de esa validación, aquí se toma solo la primera para
+  // no mostrar ni contar la misma calificación dos veces.
+  const califPorTurno = {};
+  (M.encuestas||[]).forEach(function(e){
+    if (!e.turnoId || califPorTurno[e.turnoId]!=null) return;
+    const vals = (e.respuestas||[]).map(function(x){ return x.valor; }).filter(function(v){ return v!=null; });
+    if (vals.length) califPorTurno[e.turnoId] = vals.reduce(function(a,b){ return a+b; },0)/vals.length;
+  });
+
+  // Fichas y tiempo de atención por hora del día: la "Tendencia diaria de
+  // este detalle" de abajo agrupa por DÍA, así que al entrar al detalle de
+  // un solo día (clic en una barra de "Fichas emitidas por tipo de trámite")
+  // esa mini-tendencia no tiene nada que mostrar (un solo punto) y se pierde
+  // la referencia de en qué horas se concentró la fila y cuánto tardó la
+  // atención en cada franja — esto cubre justo ese caso, agrupando por hora
+  // en vez de por día, y sirve igual si el detalle abarca varios días.
+  const fichasHora = new Array(24).fill(0);
+  const atencionHoraSuma = new Array(24).fill(0), atencionHoraN = new Array(24).fill(0);
+  turnos.forEach(function(t){
+    fichasHora[new Date(t.horaCreado).getHours()]++;
+    if (t.horaAtencion && t.horaFinalizado){
+      const hr = new Date(t.horaAtencion).getHours();
+      atencionHoraSuma[hr] += segDesde(t.horaAtencion, t.horaFinalizado);
+      atencionHoraN[hr]++;
+    }
+  });
+  const atencionHoraProm = atencionHoraSuma.map(function(s,i){ return atencionHoraN[i] ? Math.round(s/atencionHoraN[i]) : 0; });
+
   let h = '<div class="modal-fondo" data-cerrar="1"><div class="modal" style="max-width:920px"><h4>'+
     ico('monitor',15)+' Detalle — '+esc(etDet)+'</h4><div class="cuerpo">'+
     '<p style="font-size:12px;color:var(--dim);margin:0 0 14px">'+esc(etiquetaPeriodo())+'</p>'+
@@ -4311,20 +4668,28 @@ function modalDetalleReporte(tipo, clave){
       ? tituloSeccionHTML('reloj','Tendencia diaria de este detalle','var(--azul)')+
         chartBarrasHTML(dias,'atendidas',{alto:140,gradiente:'var(--grad-verde)'})
       : '')+
+    (turnos.length
+      ? '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px;margin-bottom:4px">'+
+        '<div>'+tituloSeccionHTML('monitor','Fichas por hora','var(--azul-cla)')+chartHorarioHTML(fichasHora,{gradiente:'var(--grad-cielo)'})+'</div>'+
+        '<div>'+tituloSeccionHTML('reloj','Atención promedio por hora','var(--naranja)')+chartHorarioHTML(atencionHoraProm,{gradiente:'var(--grad-naranja)', formato:'tiempo'})+'</div>'+
+        '</div>'
+      : '')+
     tituloSeccionHTML('user','Turnos en este detalle ('+turnos.length+')','var(--azul)')+
     (turnos.length ? '<div style="overflow:auto;max-height:320px;border:1px solid var(--borde);border-radius:6px;margin-top:6px">'+
       '<table style="width:100%;border-collapse:collapse"><thead><tr>'+
         '<th style="'+th+'">Fecha</th><th style="'+th+'">Folio</th><th style="'+th+'">Trámite</th>'+
         '<th style="'+th+'">Puesto</th><th style="'+th+'">Funcionario</th><th style="'+th+'">Estado</th>'+
-        '<th style="'+th+'">Espera</th><th style="'+th+'">Atención</th></tr></thead><tbody>'+
+        '<th style="'+th+'">Espera</th><th style="'+th+'">Atención</th><th style="'+th+'">Calificación</th></tr></thead><tbody>'+
       turnos.slice(0,MOSTRAR).map(function(t){
         const d = new Date(t.horaCreado);
         const esp = t.horaAtencion ? crono(segDesde(t.horaCreado,t.horaAtencion)) : '—';
         const ate = (t.horaAtencion&&t.horaFinalizado) ? crono(segDesde(t.horaAtencion,t.horaFinalizado)) : '—';
+        const calif = califPorTurno[t.id];
         return '<tr><td style="'+celda+'">'+d.toLocaleDateString('es-CR')+' '+d.toLocaleTimeString('es-CR',{hour:'2-digit',minute:'2-digit'})+'</td>'+
           '<td style="'+celda+'"><b>'+esc(t.folio)+'</b></td><td style="'+celda+'">'+esc(t.tramiteNombre||'—')+'</td>'+
           '<td style="'+celda+'">'+esc(t.puestoNombre||'—')+'</td><td style="'+celda+'">'+esc(usuarioCorto(t.atendidoPor))+'</td>'+
-          '<td style="'+celda+'">'+esc(t.estado)+'</td><td style="'+celda+'">'+esp+'</td><td style="'+celda+'">'+ate+'</td></tr>';
+          '<td style="'+celda+'">'+esc(t.estado)+'</td><td style="'+celda+'">'+esp+'</td><td style="'+celda+'">'+ate+'</td>'+
+          '<td style="'+celda+'">'+(calif!=null ? '<b style="color:'+(SATISFACCION[Math.round(calif)]||SATISFACCION[3]).color+'">'+calif.toFixed(1)+' / 5</b>' : '—')+'</td></tr>';
       }).join('')+
       '</tbody></table></div>'+
       (turnos.length>MOSTRAR ? '<p style="font-size:11px;color:var(--dim);margin:6px 0 0">Mostrando '+MOSTRAR+' de '+turnos.length+' — use «Exportar CSV» para el detalle completo.</p>' : '')
@@ -4366,7 +4731,8 @@ async function emitirFicha(conCedula){
   const cedula = conCedula ? (ui.cedula||'').replace(/\D/g,'') : null;
   try{
     const r = await api('/api/turnos', {method:'POST', body:{
-      sucursalId:suc, tramiteId:tr.id, preferencial:!!ui.pref, cedula:cedula||undefined
+      sucursalId:suc, tramiteId:tr.id, preferencial:!!ui.pref, cedula:cedula||undefined,
+      idioma: ui.idiomaTicket==='en' ? 'en' : 'es'
     }});
     const ficha = mapTurnoDesdeAPI(r);
     ui.ticket = ficha; ui.paso='ticket'; ui.cuenta=SEG_AUTOREGRESO; ui.kioscoError=null;
@@ -4454,7 +4820,9 @@ function reiniciarCuenta(){
 function reiniciarKiosco(){
   clearInterval(temporizadorCuenta);
   ui.paso='bienvenida'; ui.tramiteId=null; ui.pref=false; ui.cedula=''; ui.ticket=null; ui.cuenta=SEG_AUTOREGRESO;
-  ui.kioscoError=null;
+  ui.kioscoError=null; ui.idiomaKiosko=null; ui.idiomaTicket=null;
+  ui.accesKiosco=false; ui.accesUltimaClave=null;
+  if (window.speechSynthesis) speechSynthesis.cancel();
   refrescarKiosco().then(pintar);
 }
 
@@ -4616,6 +4984,7 @@ async function accion(a, v, t, el){
       break;
     }
     case 'toggle-menu-opciones': ui.menuOpciones = !ui.menuOpciones; break;
+    case 'toggle-tema': alternarTema(); break;
     case 'pantalla-completa': {
       if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){});
       else document.exitFullscreen().catch(function(){});
@@ -4629,7 +4998,23 @@ async function accion(a, v, t, el){
     case 'k-inicio': ui.paso='tramite'; break;
     case 'k-paso': ui.paso=v; break;
     case 'k-reiniciar': reiniciarKiosco(); break;
-    case 'k-tramite': ui.tramiteId=v; ui.pref = t==='1'; ui.tramiteOrigen=ui.paso; ui.paso='cedula'; ui.cedula=''; ui.kioscoError=null; break;
+    case 'k-idioma': ui.idiomaKiosko = ui.idiomaKiosko==='en' ? null : 'en'; break;
+    case 'k-acces': {
+      ui.accesKiosco = !ui.accesKiosco;
+      if (!ui.accesKiosco && window.speechSynthesis) speechSynthesis.cancel();
+      ui.accesUltimaClave = null; // fuerza narrar la pantalla actual de inmediato al activar
+      break;
+    }
+    case 'k-tramite': {
+      ui.tramiteId=v; ui.pref = t==='1'; ui.tramiteOrigen=ui.paso; ui.paso='cedula'; ui.cedula=''; ui.kioscoError=null;
+      // Se guarda el idioma elegido para ESTA ficha (ui.idiomaTicket) ANTES de
+      // apagar el inglés temporal de las pantallas del kiosco: así la sala y
+      // la encuesta de esta ficha en particular pueden seguir en inglés, aun
+      // cuando el kiosco ya volvió a español para el siguiente asociado.
+      ui.idiomaTicket = ui.idiomaKiosko==='en' ? 'en' : 'es';
+      ui.idiomaKiosko=null;
+      break;
+    }
     case 'k-tecla': {
       const d=(ui.cedula||'').replace(/\D/g,'');
       if (v==='limpiar') ui.cedula='';
@@ -4671,7 +5056,7 @@ async function accion(a, v, t, el){
       // pantalla, no se abre una nueva (la pantalla de idle ya lo bloquea
       // visualmente antes).
       if (t2 && t2.id && ui.encRespondidos && ui.encRespondidos.has(t2.id)) return;
-      ui.encTurno = (t2 && t2.id) ? {folio:t2.folio, tramiteNombre:t2.tramiteNombre, turnoId:t2.id} : null;
+      ui.encTurno = (t2 && t2.id) ? {folio:t2.folio, tramiteNombre:t2.tramiteNombre, turnoId:t2.id, idioma:t2.idioma} : null;
       ui.encRespuestas = {};
       ui.encIndice = 0;
       ui.encPaso = 'form';
@@ -4704,15 +5089,33 @@ async function accion(a, v, t, el){
       const puestoId = equipo&&equipo.puestoId;
       const puesto = puestoId?puestoPorId(puestoId):null;
       const plataforma = (equipo&&equipo.plataforma)||(puesto?puesto.nombre:'Encuesta');
+      const idiomaEnc = (ui.encTurno && ui.encTurno.idioma) || null;
       const registro = {
         sucursalId:suc, puestoId:puestoId||null, plataforma:plataforma,
         turnoId:(ui.encTurno&&ui.encTurno.turnoId)||null,
         turnoFolio:(ui.encTurno&&ui.encTurno.folio)||null,
         tramiteNombre:(ui.encTurno&&ui.encTurno.tramiteNombre)||null,
-        respuestas: preguntas.map(function(p){ return {preguntaId:p.id, texto:p.texto, valor:resp[p.id]}; })
+        // Se guarda el texto de la pregunta TAL COMO se le mostró al asociado
+        // (en inglés si esta encuesta era en inglés y había traducción), no
+        // siempre el español — así el historial de Reportes/Encuestas queda
+        // fiel a lo que la persona realmente leyó y respondió.
+        respuestas: preguntas.map(function(p){
+          return {preguntaId:p.id, texto:(idiomaEnc==='en'?(p.textoEn||p.texto):p.texto), valor:resp[p.id]};
+        })
       };
       try{ await api('/api/encuestas/respuestas', {method:'POST', body:registro}); }
-      catch(e){ ui.encError = e.message||'No se pudo registrar la encuesta. Intente de nuevo.'; break; }
+      catch(e){
+        ui.encError = e.message||'No se pudo registrar la encuesta. Intente de nuevo.';
+        // El servidor ya tiene una encuesta para este turno (ver validación
+        // en /api/encuestas/respuestas): no tiene sentido dejar reintentar
+        // el mismo envío — se marca como respondido, igual que si hubiera
+        // salido bien, para no duplicar la calificación de este turno.
+        if (/ya existe una encuesta/i.test(ui.encError) && ui.encTurno && ui.encTurno.turnoId){
+          if (!ui.encRespondidos) ui.encRespondidos = new Set();
+          ui.encRespondidos.add(ui.encTurno.turnoId);
+        }
+        break;
+      }
       if (ui.encTurno && ui.encTurno.turnoId){
         if (!ui.encRespondidos) ui.encRespondidos = new Set();
         ui.encRespondidos.add(ui.encTurno.turnoId);
@@ -5037,6 +5440,11 @@ async function accion(a, v, t, el){
       catch(e){ alert(e.message||'No se pudo eliminar la pregunta.'); }
       break;
     }
+    case 'adm-pregunta-en': {
+      try{ await api('/api/encuestas/preguntas/'+v, {method:'PATCH', body:{textoEn: el.value.trim()}}); await cargarCatalogo(); }
+      catch(e){ alert(e.message||'No se pudo guardar la traducción.'); }
+      break;
+    }
     case 'adm-nuevo-canal': ui.nuevoCanal=el.value; return;
     case 'adm-agregar-canal': {
       const nom=(ui.nuevoCanal||'').trim(); if(!nom) return;
@@ -5093,6 +5501,20 @@ async function accion(a, v, t, el){
       try{ await api('/api/config', {method:'PATCH', body:{voz_nombre: el.value}}); await cargarCatalogo(); }
       catch(e){ alert(e.message||'No se pudo guardar la voz.'); }
       break;
+    }
+    case 'adm-voz-usar': {
+      // Igual que elegir la voz en el <select> (adm-voz), pero desde el atajo
+      // de "voces masculinas recomendadas" — un solo toque, sin buscarla.
+      try{ await api('/api/config', {method:'PATCH', body:{voz_nombre: v}}); await cargarCatalogo(); }
+      catch(e){ alert(e.message||'No se pudo guardar la voz.'); }
+      break;
+    }
+    case 'adm-voz-probar': {
+      // Escucha ESA voz puntual sin guardarla primero, para poder comparar
+      // varias antes de decidir — prueba local, no toca el servidor.
+      anunciar({folio:'P-045', consecutivo:45, puesto:'Caja 1', preferencial:false,
+        vozNombre:v, activa:true});
+      return;
     }
     case 'adm-voz-perfil': {
       const perfil = PERFILES_VOZ.find(p=>p.id===el.value) || PERFILES_VOZ[0];
@@ -5406,6 +5828,7 @@ setInterval(function(){
 
 /* ---------------- arranque ---------------- */
 (async function iniciar(){
+  cargarTema();
   try{
     const s = sessionStorage.getItem(CLAVE_SESION);
     const d = s ? JSON.parse(s) : null;

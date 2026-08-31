@@ -18,6 +18,18 @@ router.post('/encuestas/preguntas', exigirSesion, exigirAdmin, async (req, res) 
   res.status(201).json(rows[0]);
 });
 
+/** PATCH /api/encuestas/preguntas/:id  { textoEn } — traducción opcional al
+ *  inglés de una pregunta ya creada, para las encuestas de turnos que se
+ *  tomaron en inglés en el kiosco (ver turnos.idioma). */
+router.patch('/encuestas/preguntas/:id', exigirSesion, exigirAdmin, async (req, res) => {
+  const { rows } = await query(
+    'UPDATE encuesta_preguntas SET texto_en = $1 WHERE id = $2 RETURNING *',
+    [req.body.textoEn || null, req.params.id]
+  );
+  if (!rows.length) return res.status(404).json({ error: 'Pregunta no encontrada.' });
+  res.json(rows[0]);
+});
+
 router.delete('/encuestas/preguntas/:id', exigirSesion, exigirAdmin, async (req, res) => {
   await query('DELETE FROM encuesta_preguntas WHERE id = $1', [req.params.id]);
   res.json({ ok: true });
@@ -45,7 +57,7 @@ router.delete('/encuestas/canales/:nombre', exigirSesion, exigirAdmin, async (re
  *  este momento — nunca antes, nunca después de cerrarlo. */
 router.get('/sucursales/:id/turno-en-atencion/:puestoId', exigirSesion, async (req, res) => {
   const { rows } = await query(
-    `SELECT id, folio, tramite_nombre FROM turnos
+    `SELECT id, folio, tramite_nombre, idioma FROM turnos
      WHERE puesto_id = $1 AND estado = 'atendiendo' LIMIT 1`,
     [req.params.puestoId]
   );
@@ -60,12 +72,36 @@ router.post('/encuestas/respuestas', exigirSesion, async (req, res) => {
   if (!Array.isArray(respuestas) || !respuestas.length) {
     return res.status(400).json({ error: 'Faltan las respuestas.' });
   }
-  const { rows } = await query(
-    `INSERT INTO encuesta_respuestas (sucursal_id, puesto_id, plataforma, turno_id, turno_folio, tramite_nombre)
-     VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
-    [sucursalId, puestoId || null, plataforma, turnoId || null, turnoFolio || null, tramiteNombre || null]
-  );
-  const respuestaId = rows[0].id;
+  // Un mismo turno no puede dejar dos encuestas: sin este control, un doble
+  // toque en "Enviar" o un reintento tras un corte de red duplicaba la
+  // respuesta y la calificación de ese turno se contaba dos veces en
+  // Reportes. La tableta ya evita reabrir la encuesta de un turno ya
+  // respondido (ver ui.encRespondidos en el front), pero esa memoria es solo
+  // de esa sesión del navegador — esta es la validación real.
+  if (turnoId) {
+    const existente = await query(
+      'SELECT id FROM encuesta_respuestas WHERE turno_id = $1 LIMIT 1',
+      [turnoId]
+    );
+    if (existente.rows.length) {
+      return res.status(409).json({ error: 'Ya existe una encuesta registrada para este turno.' });
+    }
+  }
+  let respuestaId;
+  try {
+    const { rows } = await query(
+      `INSERT INTO encuesta_respuestas (sucursal_id, puesto_id, plataforma, turno_id, turno_folio, tramite_nombre)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+      [sucursalId, puestoId || null, plataforma, turnoId || null, turnoFolio || null, tramiteNombre || null]
+    );
+    respuestaId = rows[0].id;
+  } catch (e) {
+    // 23505: unique_violation — dos envíos casi simultáneos para el mismo
+    // turno pasaron ambos el SELECT de arriba; el índice único de la base
+    // es el que realmente corta la carrera.
+    if (e.code === '23505') return res.status(409).json({ error: 'Ya existe una encuesta registrada para este turno.' });
+    throw e;
+  }
   for (const r of respuestas) {
     await query(
       `INSERT INTO encuesta_respuesta_detalle (respuesta_id, pregunta_id, pregunta_texto, valor)

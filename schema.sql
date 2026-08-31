@@ -109,6 +109,11 @@ CREATE INDEX IF NOT EXISTS idx_turnos_puesto ON turnos (puesto_id);
 CREATE INDEX IF NOT EXISTS idx_turnos_hora_creado ON turnos (hora_creado);
 -- La tabla ya existía en despliegues anteriores sin esta columna.
 ALTER TABLE turnos ADD COLUMN IF NOT EXISTS powerbi_enviado_en TIMESTAMPTZ;
+-- Idioma en el que el asociado eligió su trámite en el kiosco ('es' o 'en'):
+-- viaja con el turno para que la sala y la encuesta de satisfacción de ESE
+-- turno en particular puedan seguir en inglés, sin afectar a nadie más en
+-- la sala ni cambiar el idioma del kiosco para el siguiente asociado.
+ALTER TABLE turnos ADD COLUMN IF NOT EXISTS idioma TEXT NOT NULL DEFAULT 'es';
 -- Acelera la consulta "turnos cerrados sin enviar" que corre el envío
 -- periódico a Power BI cada pocos minutos.
 CREATE INDEX IF NOT EXISTS idx_turnos_powerbi_pendiente ON turnos (estado) WHERE powerbi_enviado_en IS NULL;
@@ -154,6 +159,12 @@ CREATE TABLE IF NOT EXISTS encuesta_preguntas (
   texto         TEXT NOT NULL,
   orden         SMALLINT NOT NULL DEFAULT 0
 );
+-- Traducción opcional al inglés de cada pregunta: si el turno que motivó la
+-- encuesta se tomó en inglés en el kiosco, se muestra esta versión en vez de
+-- traducir "texto" automáticamente (no hay motor de traducción real en el
+-- sistema). Si Administración la deja vacía, la encuesta sigue en español
+-- para ese turno en esa sola pregunta — nunca se cae en blanco.
+ALTER TABLE encuesta_preguntas ADD COLUMN IF NOT EXISTS texto_en TEXT;
 
 CREATE TABLE IF NOT EXISTS encuesta_canales (
   nombre        TEXT PRIMARY KEY          -- canales remotos: 'WhatsApp', 'Sitio web', etc.
@@ -169,6 +180,12 @@ CREATE TABLE IF NOT EXISTS encuesta_respuestas (
   tramite_nombre TEXT,
   fecha         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Un turno solo puede tener una encuesta: evita respuestas duplicadas por un
+-- doble envío o un reintento tras un corte de red, que inflarían el conteo
+-- de encuestas y la calificación promedio de ese turno en Reportes.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_encuesta_respuestas_turno
+  ON encuesta_respuestas (turno_id) WHERE turno_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS encuesta_respuesta_detalle (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
