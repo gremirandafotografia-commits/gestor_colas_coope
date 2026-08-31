@@ -8,7 +8,7 @@ const { enviarPendientesAPowerBI, contarPendientesPowerBI } = require('../lib/po
 router.get('/config', exigirSesion, async (req, res) => {
   const { rows } = await query(
     `SELECT logo_url, pin_salida, voz_nombre, voz_activa, voz_velocidad, voz_tono,
-            tono_activo, tono_id,
+            tono_activo, tono_id, impresora_designada,
             desborde_activo, desborde_umbral_fichas, desborde_umbral_minutos,
             (padron_url != '') AS padron_configurado,
             (powerbi_url != '') AS powerbi_configurado,
@@ -23,7 +23,7 @@ router.get('/config', exigirSesion, async (req, res) => {
 router.patch('/config', exigirSesion, exigirAdmin, async (req, res) => {
   const permitidos = [
     'logo_url', 'pin_salida', 'voz_nombre', 'voz_activa', 'voz_velocidad', 'voz_tono',
-    'tono_activo', 'tono_id',
+    'tono_activo', 'tono_id', 'impresora_designada',
     'desborde_activo', 'desborde_umbral_fichas', 'desborde_umbral_minutos',
     'padron_url', 'padron_token',
     'powerbi_url', 'powerbi_token', 'salesforce_url', 'salesforce_token',

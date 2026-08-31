@@ -195,6 +195,11 @@ CREATE TABLE IF NOT EXISTS configuracion (
   -- Tono de notificación que suena antes de la voz al llamar una ficha:
   tono_activo           BOOLEAN NOT NULL DEFAULT true,
   tono_id               TEXT NOT NULL DEFAULT 'suave',
+  -- Nombre de la impresora que el equipo debe usar como predeterminada del
+  -- sistema operativo para imprimir sin ventana de diálogo (modo kiosco del
+  -- navegador, --kiosk-printing). Es solo informativo/de referencia dentro
+  -- de esta pantalla: la impresora real la define Windows, no esta app.
+  impresora_designada   TEXT NOT NULL DEFAULT '',
   desborde_activo       BOOLEAN NOT NULL DEFAULT true,
   desborde_umbral_fichas   INTEGER NOT NULL DEFAULT 5,
   desborde_umbral_minutos INTEGER NOT NULL DEFAULT 10,
@@ -216,6 +221,7 @@ ALTER TABLE configuracion ADD COLUMN IF NOT EXISTS powerbi_url TEXT NOT NULL DEF
 ALTER TABLE configuracion ADD COLUMN IF NOT EXISTS powerbi_token TEXT NOT NULL DEFAULT '';
 ALTER TABLE configuracion ADD COLUMN IF NOT EXISTS salesforce_url TEXT NOT NULL DEFAULT '';
 ALTER TABLE configuracion ADD COLUMN IF NOT EXISTS salesforce_token TEXT NOT NULL DEFAULT '';
+ALTER TABLE configuracion ADD COLUMN IF NOT EXISTS impresora_designada TEXT NOT NULL DEFAULT '';
 
 CREATE TABLE IF NOT EXISTS anuncios (
   id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
