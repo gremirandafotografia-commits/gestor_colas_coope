@@ -1,4 +1,9 @@
-FROM node:20-alpine
+# Debian (no Alpine): la red privada de Railway (*.railway.internal) solo
+# publica registros DNS IPv6, y musl libc (la base de las imágenes alpine)
+# tiene un bug conocido resolviendo dominios IPv6-only — la conexión a
+# Postgres fallaba con "getaddrinfo ENOTFOUND postgres.railway.internal"
+# aunque el DATABASE_URL estuviera bien configurado.
+FROM node:20-bookworm-slim
 
 WORKDIR /app
 
