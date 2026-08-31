@@ -62,7 +62,7 @@ app.use((err, req, res, next) => {
 const servidorHttp = http.createServer(app);
 sockets.iniciar(servidorHttp, origenes.length ? origenes : true);
 
-const PUERTO = process.env.PORT || 4000;
+const PUERTO = process.env.PORT || 8080;
 servidorHttp.listen(PUERTO, () => {
   console.log(`Sistema de Gestión de Filas — backend escuchando en el puerto ${PUERTO}`);
 });
