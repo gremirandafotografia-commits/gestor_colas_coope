@@ -1663,8 +1663,16 @@ function vistaKiosco(){
             ico('acceso',15)+' '+(ui.accesKiosco?'Guía de voz activada':'Accesibilidad: guía de voz')+'</button>'+
         '</div>'+
       '</div>'+
-      /* Derecha: espacio publicitario, mismas piezas que la pantalla de sala */
-      '<div id="panel-anuncio" class="card" style="padding:0;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;border-radius:18px;min-height:480px">'+anuncioHTML('kiosco')+'</div>'+
+      /* Derecha: espacio publicitario, mismas piezas que la pantalla de sala.
+         Sin aspect-ratio fijo aquí a propósito: esta columna ya se estira
+         (align-items:stretch del grid) al alto de la columna de bienvenida,
+         que no depende del anuncio — eso es lo que le da un alto estable.
+         min-height:0 evita que el recuadro se niegue a encoger por debajo
+         del tamaño intrínseco de su contenido (comportamiento por defecto
+         de los ítems de grid/flex), que es lo que antes dejaba que la
+         imagen de turno decidiera el alto y "brincara" el resto del kiosco
+         al rotar el anuncio cada 30 s. */
+      '<div id="panel-anuncio" class="card" style="padding:0;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;border-radius:18px;min-height:0">'+anuncioHTML('kiosco')+'</div>'+
     '</div>';
   }
 
@@ -1941,8 +1949,14 @@ function vistaSala(){
   h += '</div>'; // fin columna izquierda
 
   /* Columna derecha: anuncios (imágenes JPEG o videos MP4) */
+  /* aspect-ratio:2/1 fija el alto del recuadro a partir de su propio ancho
+     (el de la columna, que no cambia), en vez de dejar que lo decida la
+     imagen de turno — así el recuadro nunca cambia de tamaño al rotar el
+     anuncio y no arrastra un "brinco" en el resto de la pantalla. 2:1 es la
+     relación apaisada con la que se diseñan las piezas de esta pantalla
+     (ver anuncioHTML). */
   h += '<div style="display:flex;flex-direction:column;gap:10px;align-self:start">'+
-    '<div id="panel-anuncio" class="card" style="padding:0;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;border-radius:8px">'+anuncioHTML('sala')+'</div>'+
+    '<div id="panel-anuncio" class="card" style="padding:0;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;border-radius:8px;aspect-ratio:2/1;min-height:0">'+anuncioHTML('sala')+'</div>'+
   '</div>';
 
   h += '</div>'; // fin grid de dos columnas
@@ -1971,15 +1985,21 @@ function anuncioHTML(pantalla){
   if (!lista.length) return '<div style="text-align:center;color:#7C93A6;font-size:14px;padding:30px">Sin anuncios para esta pantalla.<br>Agréguelos desde Administración.</div>';
   const i = (ui.anuncioIndex||0) % lista.length;
   const item = lista[i];
-  // width:100% + height:auto deja que la pieza mande: una imagen apaisada
-  // llena el ancho, una vertical se ajusta a la altura, sin deformarse.
+  // width:100% + height:100% (en vez de height:auto) hace que la pieza
+  // llene siempre el recuadro fijo de #panel-anuncio con letterboxing
+  // (object-fit:contain), sin importar si la imagen es apaisada o vertical.
+  // Antes se usaba height:auto, así que cada imagen con una relación de
+  // aspecto distinta cambiaba el alto real del recuadro y eso "brincaba"
+  // el resto de la pantalla (la tabla de últimos llamados en sala, los
+  // botones del kiosco) cada vez que rotaba el anuncio — ver el alto fijo
+  // del contenedor en vistaSala()/vistaKiosco().
   // La clase "anuncio-pieza" trae una animación de desvanecimiento de
   // entrada (ver @keyframes desvanecerAnuncio): como cada rotación
   // reconstruye el elemento desde cero, la animación se reproduce sola en
   // cada cambio de imagen o video, sin necesitar lógica adicional en JS.
   // Se usa una "key" (data-key) con el índice para que el navegador trate
   // cada pieza como un elemento nuevo y no reutilice el anterior.
-  const estilo = 'width:100%;height:auto;max-height:78vh;object-fit:contain;display:block';
+  const estilo = 'width:100%;height:100%;object-fit:contain;display:block';
   return item.tipo==='video'
     ? '<video data-key="'+i+'" class="anuncio-pieza" src="'+esc(item.src)+'" autoplay muted loop playsinline style="'+estilo+'"></video>'
     : '<img data-key="'+i+'" class="anuncio-pieza" src="'+esc(item.src)+'" alt="Anuncio" style="'+estilo+'">';
