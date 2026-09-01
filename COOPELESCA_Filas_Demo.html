@@ -1301,10 +1301,34 @@ function restaurarFoco(foco){
     try { el.setSelectionRange(foco.inicio, foco.fin); } catch(e){}
   }
 }
+/** El recuadro de anuncios (#panel-anuncio) vive dentro del HTML que pintar()
+ *  reconstruye entero cada vez que cambia algo en la fila (nuevo turno,
+ *  llamado, etc.) — no solo cada 60 s de la rotación. Sin esto, cada uno de
+ *  esos repintados normales recreaba el <img>/<video> desde cero: un video
+ *  se reiniciaba desde el segundo 0 y una imagen repetía su animación de
+ *  entrada, dando la sensación de que TODA la pantalla "parpadeaba" muy
+ *  seguido en vez de solo los datos de la ficha. Si el anuncio mostrado
+ *  sigue siendo el mismo (mismo data-key) antes y después del repintado, se
+ *  reutiliza el nodo real ya existente (con su video reproduciéndose) en
+ *  vez del que pintarInterno() acaba de crear. */
+function capturarAnuncio(){
+  const el = document.querySelector('#panel-anuncio [data-key]');
+  return el ? { key: el.getAttribute('data-key'), tag: el.tagName, nodo: el } : null;
+}
+function restaurarAnuncio(previo){
+  if (!previo) return;
+  const cont = document.getElementById('panel-anuncio');
+  const actual = cont && cont.querySelector('[data-key]');
+  if (!actual || actual.tagName!==previo.tag || actual.getAttribute('data-key')!==previo.key) return;
+  previo.nodo.style.opacity = '1'; // sin esto repetiría el fade de @keyframes desvanecerAnuncio al reinsertarlo
+  cont.replaceChild(previo.nodo, actual);
+}
 function pintar(){
   const foco = capturarFoco();
+  const anuncio = capturarAnuncio();
   pintarInterno();
   restaurarFoco(foco);
+  restaurarAnuncio(anuncio);
 }
 function pintarInterno(){
   /* Pantallas previas al sistema: nadie entra sin identificarse. En producción
@@ -1647,7 +1671,7 @@ function vistaKiosco(){
   if (paso==='bienvenida'){
     narrarAccesibilidad('bienvenida',
       'Bienvenido a '+sucObj.nombre+'. Toque en cualquier parte de la pantalla para tomar su ficha.');
-    return '<div class="entra" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px;align-items:stretch;min-height:480px">'+
+    return '<div class="entra" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:18px;align-items:stretch;min-height:480px">'+
       /* Izquierda: bienvenida y botón para tomar ficha */
       '<div class="card" style="border-radius:18px;padding:0;display:flex;flex-direction:column;overflow:hidden">'+
         '<div style="background:linear-gradient(150deg,var(--azul-osc),var(--azul) 60%,var(--azul-cla));color:#fff;padding:34px 28px;text-align:center">'+
@@ -1888,7 +1912,7 @@ function vistaSala(){
   }
 
   /* --- Dos columnas: turno llamado + historial a la izquierda, anuncios a la derecha --- */
-  h += '<div style="display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:16px;align-items:stretch">';
+  h += '<div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:16px;align-items:stretch">';
 
   /* Columna izquierda */
   h += '<div style="display:flex;flex-direction:column;gap:14px">';
@@ -1956,7 +1980,7 @@ function vistaSala(){
      relación apaisada con la que se diseñan las piezas de esta pantalla
      (ver anuncioHTML). */
   h += '<div style="display:flex;flex-direction:column;gap:10px;align-self:start">'+
-    '<div id="panel-anuncio" class="card" style="padding:0;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;border-radius:8px;aspect-ratio:2/1;min-height:0">'+anuncioHTML('sala')+'</div>'+
+    '<div id="panel-anuncio" class="card" style="padding:0;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;border-radius:8px;aspect-ratio:2/1;max-height:75vh;min-height:0">'+anuncioHTML('sala')+'</div>'+
   '</div>';
 
   h += '</div>'; // fin grid de dos columnas
@@ -3807,7 +3831,7 @@ function vistaAdmin(){
   const nKiosco = listaAnuncios.filter(function(a){ const d=a.destino||'ambos'; return d==='ambos'||d==='kiosco'; }).length;
 
   h += '<div class="card" style="padding:16px;grid-column:1/-1"><div class="sec" style="margin-top:0">'+ico('monitor',13)+' Anuncios de las pantallas</div>'+
-    '<p style="font-size:12px;color:var(--dim);margin:0 0 12px;line-height:1.5">Se muestran en un recuadro giratorio que cambia cada 30 segundos, en la sala (Trámites y Pagos) y en la bienvenida del kiosco. Cada anuncio se puede dirigir a una pantalla o a ambas, porque los dos recuadros tienen forma distinta.</p>'+
+    '<p style="font-size:12px;color:var(--dim);margin:0 0 12px;line-height:1.5">Se muestran en un recuadro giratorio que cambia cada 1 minuto, en la sala (Trámites y Pagos) y en la bienvenida del kiosco. Cada anuncio se puede dirigir a una pantalla o a ambas, porque los dos recuadros tienen forma distinta.</p>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-bottom:14px">'+
       '<div style="border:1px solid var(--borde);border-radius:7px;padding:11px 13px;border-left:4px solid var(--azul)">'+
         '<div style="font-size:12px;font-weight:700;color:var(--azul-osc)">Pantalla de sala · '+nSala+' anuncio(s)</div>'+
@@ -6071,11 +6095,11 @@ document.addEventListener('mousemove', function(ev){
 });
 document.addEventListener('mouseleave', function(){ if (ttGrafEl){ ttGrafEl.style.display='none'; ttGrafSrc=null; } });
 
-/* Rotación del recuadro de anuncios (kiosco y pantalla de sala): cada 30 s,
+/* Rotación del recuadro de anuncios (kiosco y pantalla de sala): cada 60 s,
    para poder poner más imágenes sin que pasen demasiado rápido.
    IMPORTANTE: actualiza SOLO el recuadro del anuncio (#panel-anuncio),
    nunca llama a pintar() completo — antes reconstruía la pantalla entera
-   cada 30 s (folio, cronómetros, todo), lo cual además reiniciaba el video
+   cada 60 s (folio, cronómetros, todo), lo cual además reiniciaba el video
    que estuviera reproduciéndose y podía interrumpir a quien estuviera
    escribiendo en algún campo en ese momento. */
 setInterval(function(){
@@ -6088,7 +6112,7 @@ setInterval(function(){
   ui.anuncioIndex = ((ui.anuncioIndex||0)+1) % n;
   const panel = document.getElementById('panel-anuncio');
   if (panel) panel.innerHTML = anuncioHTML(pantalla);
-}, 30000);
+}, 60000);
 
 /* Voces disponibles al cargar */
 if (window.speechSynthesis){
