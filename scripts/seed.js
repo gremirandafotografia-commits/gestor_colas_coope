@@ -9,7 +9,10 @@ const path = require('path');
 const { Pool } = require('pg');
 
 async function main() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.PGSSL === 'true' ? { rejectUnauthorized: false } : false,
+  });
   try {
     const { rows } = await pool.query('SELECT COUNT(*)::int AS n FROM sucursales');
     if (rows[0].n > 0) {

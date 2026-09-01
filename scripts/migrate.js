@@ -21,7 +21,10 @@ const CODIGOS_YA_EXISTE = new Set([
 ]);
 
 async function main() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.PGSSL === 'true' ? { rejectUnauthorized: false } : false,
+  });
   const sql = fs.readFileSync(path.join(__dirname, '..', 'schema.sql'), 'utf8');
   try {
     await pool.query(sql);
