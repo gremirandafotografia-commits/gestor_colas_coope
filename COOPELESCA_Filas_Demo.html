@@ -453,11 +453,16 @@ function crono(s){
   const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), x=Math.floor(s%60);
   return [h,m,x].map(n=>String(n).padStart(2,'0')).join(':');
 }
+/* La cédula física costarricense (9 dígitos) se muestra con guiones
+ * (1-2345-6789), pero el DIMEX (residencia para extranjeros, 11-12
+ * dígitos) y otros documentos más largos no llevan guiones — se muestran
+ * tal cual, en una sola tira de números. */
 function cedFmt(c){
   const d=(c||'').replace(/\D/g,'');
   if (d.length<=1) return d;
   if (d.length<=5) return d[0]+'-'+d.slice(1);
-  return d[0]+'-'+d.slice(1,5)+'-'+d.slice(5,9);
+  if (d.length<=9) return d[0]+'-'+d.slice(1,5)+'-'+d.slice(5,9);
+  return d;
 }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -603,7 +608,9 @@ const GENERO_VOZ = {
   valentina:'F', mateo:'M', carlos:'M', karla:'F', ramona:'F', emilio:'M', andrea:'F', luis:'M',
   belkys:'F', manuel:'M', sofia:'F', marcelo:'M', paloma:'F', alonso:'M',
   mia:'F', pedro:'M',
-  paulina:'F', diego:'M', lupe:'F', soledad:'F'
+  paulina:'F', diego:'M', lupe:'F', soledad:'F',
+  // --- Inglés de EE. UU. (ver VOCES_PREF_EN) ---
+  ava:'F', andrew:'M'
 };
 /** Busca el nombre de la voz dentro de GENERO_VOZ (coincidencia parcial,
  *  igual que VOCES_PREF): "Microsoft Jorge Online (Natural)" sí encuentra
@@ -650,18 +657,29 @@ function elegirVoz(nombre){
   // hay ninguna se usa la que sea (aunque sea de España) como último recurso.
   return vsLatino[0] || vs[0];
 }
+/* Voces en-US neuronales de buena calidad (Microsoft "Online (Natural)",
+ * las mismas que trae Microsoft Edge) para las atenciones en inglés —
+ * mismo criterio que VOCES_PREF con el español: nombres propios que se
+ * buscan por coincidencia parcial entre las voces YA instaladas en el
+ * equipo. Nunca instala nada nuevo; si ninguna coincide, elegirVozIngles()
+ * cae de todos modos a cualquier otra voz en inglés disponible. */
+const VOCES_PREF_EN=['microsoft ava','microsoft andrew'];
 /** Voz en inglés para el llamado de una ficha tomada en inglés (ver
- *  colaPuesto/turnos.idioma): prefiere en-US, y si el equipo no tiene NINGUNA
- *  voz en inglés instalada, devuelve null — el llamado igual sale con
- *  u.lang='en-US' fijado en anunciar(), que en la mayoría de navegadores ya
- *  ayuda a leer el texto con acento inglés aunque no haya una voz dedicada. */
+ *  colaPuesto/turnos.idioma): prefiere en-US, y dentro de en-US prioriza
+ *  VOCES_PREF_EN (voces nativas de EE. UU. de buena calidad); si el equipo
+ *  no tiene NINGUNA voz en inglés instalada, devuelve null — el llamado
+ *  igual sale con u.lang='en-US' fijado en anunciar(), que en la mayoría de
+ *  navegadores ya ayuda a leer el texto con acento inglés aunque no haya
+ *  una voz dedicada. */
 function elegirVozIngles(){
   if (!window.speechSynthesis) return null;
   const todas = speechSynthesis.getVoices();
   if (!todas.length) return null;
   const en = todas.filter(v=>v.lang&&v.lang.toLowerCase().indexOf('en')===0);
   if (!en.length) return null;
-  return en.find(v=>v.lang.toLowerCase()==='en-us') || en[0];
+  const enUS = en.filter(v=>v.lang.toLowerCase()==='en-us');
+  for (const p of VOCES_PREF_EN){ const v=enUS.find(x=>x.name.toLowerCase().indexOf(p)>=0); if(v) return v; }
+  return enUS[0] || en[0];
 }
 /** Filtra en vivo (sin recargar ni perder la selección) las <option> del
  *  <select> de voces según lo que se escriba en el buscador de arriba —
@@ -877,15 +895,26 @@ const SUSTITUCIONES_VOZ = [
 function aHablado(texto){
   return SUSTITUCIONES_VOZ.reduce(function(t, par){ return t.replace(par[0], par[1]); }, texto);
 }
-function hablarAccesibilidad(texto){
+/** ingles=true cuando la pantalla que se está narrando está en inglés
+ *  temporal (ui.idiomaKiosko/ui.idiomaTicket): en ese caso la guía de voz
+ *  también debe sonar en inglés — antes siempre narraba en español, aunque
+ *  la persona ya hubiera cambiado la pantalla a inglés con el botón
+ *  "English", lo cual no ayudaba a quien de verdad necesitaba oírla en ese
+ *  idioma. */
+function hablarAccesibilidad(texto, ingles){
   if (!window.speechSynthesis) return;
   try{
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(aHablado(texto));
-    u.lang = 'es-CR';
+    const u = new SpeechSynthesisUtterance(ingles ? texto : aHablado(texto));
+    if (ingles){
+      u.lang = 'en-US';
+      const v = elegirVozIngles(); if (v){ u.voice=v; u.lang=v.lang; }
+    } else {
+      u.lang = 'es-CR';
+      const v = elegirVoz(E.config.vozNombre); if (v){ u.voice=v; u.lang=v.lang; }
+    }
     u.rate = E.config.vozVelocidad || .94;
     u.pitch = E.config.vozTono!=null ? E.config.vozTono : 1.04;
-    const v = elegirVoz(E.config.vozNombre); if (v){ u.voice=v; u.lang=v.lang; }
     speechSynthesis.speak(u);
   }catch(e){ console.error('Guía de voz de accesibilidad no disponible', e); }
 }
@@ -894,11 +923,11 @@ function hablarAccesibilidad(texto){
  *  "clave" identifica el contenido actual (paso + trámite + preferencial,
  *  según corresponda); mientras no cambie, no se repite la narración. Se
  *  agenda con ui.tras porque vistaKiosco() es parte del render — la voz
- *  debe sonar DESPUÉS de pintar, no durante. */
-function narrarAccesibilidad(clave, texto){
+ *  debe sonar DESPUÉS de pintar, no durante. "ingles" ver hablarAccesibilidad. */
+function narrarAccesibilidad(clave, texto, ingles){
   if (!ui.accesKiosco || ui.accesUltimaClave===clave) return;
   ui.accesUltimaClave = clave;
-  ui.tras = function(){ hablarAccesibilidad(texto); };
+  ui.tras = function(){ hablarAccesibilidad(texto, ingles); };
 }
 /** Botón de accesibilidad del kiosco: a diferencia del inglés temporal, esta
  *  guía de voz se mantiene activa durante TODO el trámite (hasta imprimir la
@@ -1248,7 +1277,36 @@ function itemTemaMenu(){
     texto: osc?'Modo claro':'Modo oscuro'};
 }
 
+/** Antes de reconstruir el DOM (pintar() reemplaza app.innerHTML entero),
+ *  recuerda qué campo tenía el foco y en qué posición del texto estaba el
+ *  cursor, para devolvérselo después del repintado. Sin esto, cualquier
+ *  repintado disparado por otra cosa (llegó un turno nuevo a la sucursal,
+ *  el respaldo de reconexión cada 6 s, etc.) mientras alguien digitaba a
+ *  mano una cédula o un folio le quitaba el foco al campo — en una tableta
+ *  o kiosco eso cierra el teclado en pantalla a media escritura, y da la
+ *  sensación de tener muy poco tiempo para terminar de escribir. */
+function capturarFoco(){
+  const el = document.activeElement;
+  if (!el || el===document.body) return null;
+  const attr = el.getAttribute && el.getAttribute('data-a');
+  if (!attr) return null;
+  return { attr:attr, inicio: (typeof el.selectionStart==='number'?el.selectionStart:null), fin: (typeof el.selectionEnd==='number'?el.selectionEnd:null) };
+}
+function restaurarFoco(foco){
+  if (!foco) return;
+  const el = document.querySelector('[data-a="'+foco.attr+'"]');
+  if (!el || typeof el.focus!=='function') return;
+  el.focus();
+  if (foco.inicio!=null && el.setSelectionRange){
+    try { el.setSelectionRange(foco.inicio, foco.fin); } catch(e){}
+  }
+}
 function pintar(){
+  const foco = capturarFoco();
+  pintarInterno();
+  restaurarFoco(foco);
+}
+function pintarInterno(){
   /* Pantallas previas al sistema: nadie entra sin identificarse. En producción
      esta validación debe repetirse en el servidor (ver aviso en AUTENTICACIÓN). */
   if (!sesion){
@@ -1345,6 +1403,17 @@ function pintar(){
   else if (vista==='encuestas') html += '<div class="kiosco-fondo">'+vistaEncuestas()+'</div>';
   html += '</main>';
 
+  // El modal de "registrar cédula a mano" NO se guarda como texto fijo: debe
+  // reconstruirse con el valor MÁS RECIENTE de ui.cedulaManual en cada
+  // repintado (llegó un turno nuevo, el respaldo de reconexión cada 6 s,
+  // etc.), igual que ya se hacía con el PIN. Si no, un repintado disparado
+  // mientras la persona digita reemplazaba el cuadro por el snapshot viejo
+  // (vacío al abrir el modal) encima de lo ya escrito — aunque el valor
+  // interno (ui.cedulaManual, ver el listener de 'input' más abajo) sí
+  // quedara correcto para guardar, la persona VEÍA que se le borraba, y con
+  // el kiosco/tableta repintándose seguido sentía que tenía muy poco tiempo
+  // para terminar de escribir antes de que "se borrara" de nuevo.
+  if (ui.cedulaFicha && ui.modal) ui.modal = modalCedula();
   if (ui.modal) html += ui.modal;
 
   app.innerHTML = html;
@@ -1606,11 +1675,20 @@ function vistaKiosco(){
        la pantalla principal de elección — igual en la rama preferencial. */
     const pago = E.tramites.find(function(t){ return t.id==='P'; });
     const resto = E.tramites.filter(function(t){ return t.id!=='P'; });
-    narrarAccesibilidad(paso,
-      (pref ? 'Trámites preferenciales, Ley 7600, para personas con discapacidad, adultas mayores, mujeres embarazadas o con niños en brazos. '
-            : '¿Qué trámite desea realizar? ')+
-      'Las opciones son: '+[pago?pago.nombre:null, resto.length?('Trámites, con '+resto.length+' opciones más'):null,
-        !pref?'Atención preferencial, Ley 7600':null].filter(Boolean).join('. ')+'. Toque la opción que necesita.');
+    (function(){
+      const en = ui.idiomaKiosko==='en';
+      const nombrePago = pago ? trIdioma(pago.nombre, ui.idiomaKiosko) : null;
+      const texto = en
+        ? (pref ? 'Priority services, Law 7600, for people with disabilities, older adults, pregnant women, or those carrying infants. '
+                : 'What service would you like? ')+
+          'The options are: '+[nombrePago, resto.length?('Services, with '+resto.length+' more options'):null,
+            !pref?'Priority service, Law 7600':null].filter(Boolean).join('. ')+'. Touch the option you need.'
+        : (pref ? 'Trámites preferenciales, Ley 7600, para personas con discapacidad, adultas mayores, mujeres embarazadas o con niños en brazos. '
+                : '¿Qué trámite desea realizar? ')+
+          'Las opciones son: '+[nombrePago, resto.length?('Trámites, con '+resto.length+' opciones más'):null,
+            !pref?'Atención preferencial, Ley 7600':null].filter(Boolean).join('. ')+'. Toque la opción que necesita.';
+      narrarAccesibilidad(paso, texto, en);
+    })();
     let h = '<div class="entra'+(pref?' pref':'')+'" style="max-width:720px;margin:0 auto">'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">'+
       tituloPaso(trK(pref?'Trámites preferenciales — Ley 7600':'¿Qué trámite desea realizar?'),
@@ -1644,9 +1722,14 @@ function vistaKiosco(){
   if (paso==='tramite-tramites' || paso==='preferencial-tramites'){
     const pref = paso==='preferencial-tramites';
     const resto = E.tramites.filter(function(t){ return t.id!=='P'; });
-    narrarAccesibilidad(paso,
-      'Trámites'+(pref?' preferenciales':'')+'. Las opciones son: '+resto.map(function(t){ return t.nombre; }).join(', ')+
-      '. Toque la opción que necesita.');
+    (function(){
+      const en = ui.idiomaKiosko==='en';
+      const nombres = resto.map(function(t){ return trIdioma(t.nombre, ui.idiomaKiosko); }).join(', ');
+      const texto = en
+        ? 'Services'+(pref?', priority':'')+'. The options are: '+nombres+'. Touch the option you need.'
+        : 'Trámites'+(pref?' preferenciales':'')+'. Las opciones son: '+nombres+'. Toque la opción que necesita.';
+      narrarAccesibilidad(paso, texto, en);
+    })();
     let h = '<div class="entra'+(pref?' pref':'')+'" style="max-width:720px;margin:0 auto">'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">'+
       tituloPaso(trK('Trámites')+(pref?' '+trK('preferenciales'):''), trK('Toque el servicio que necesita'), pref?'var(--verde)':'var(--azul)')+
@@ -1667,9 +1750,16 @@ function vistaKiosco(){
     const tr = E.tramites.find(t=>t.id===ui.tramiteId);
     const d = (ui.cedula||'').replace(/\D/g,'');
     const teclas = ['1','2','3','4','5','6','7','8','9','limpiar','0','borrar'];
-    narrarAccesibilidad('cedula:'+ui.tramiteId+':'+(ui.pref?1:0),
-      'Trámite seleccionado: '+(tr?tr.nombre:'')+(ui.pref?', preferencial, Ley 7600':'')+
-      '. Puede digitar su número de cédula en el teclado de la pantalla, o tocar continuar sin cédula.');
+    (function(){
+      const en = ui.idiomaTicket==='en';
+      const nombreTr = tr ? trIdioma(tr.nombre, ui.idiomaTicket) : '';
+      const texto = en
+        ? 'Selected service: '+nombreTr+(ui.pref?', priority, Law 7600':'')+
+          '. You may type your ID number on the on-screen keypad, or touch continue without ID.'
+        : 'Trámite seleccionado: '+nombreTr+(ui.pref?', preferencial, Ley 7600':'')+
+          '. Puede digitar su número de cédula en el teclado de la pantalla, o tocar continuar sin cédula.';
+      narrarAccesibilidad('cedula:'+ui.tramiteId+':'+(ui.pref?1:0), texto, en);
+    })();
     let h = '<div class="entra" style="max-width:480px;margin:0 auto">'+
       tituloPaso(trT('Digite su número de cédula'),trT('Se usa únicamente para el registro del trámite. Este paso es opcional.'),
         ui.pref?'var(--verde)':'var(--azul)')+
@@ -1695,10 +1785,20 @@ function vistaKiosco(){
   const t = ui.ticket;
   if (!t){ ui.paso='bienvenida'; return vistaKiosco(); }
   const tr = E.tramites.find(x=>x.id===t.tramiteId);
-  narrarAccesibilidad('ticket:'+t.folio,
-    'Su ficha es '+prefijoHablado(t.folio)+', '+numLetras(parseInt(t.folio.split('-')[1],10))+'. Para '+t.tramiteNombre+
-    '. Hay '+Math.max(0,enCola-1)+(Math.max(0,enCola-1)===1?' persona antes que usted':' personas antes que usted')+
-    '. Guarde su ficha impresa.');
+  (function(){
+    const en = ui.idiomaTicket==='en';
+    const antes = Math.max(0,enCola-1);
+    const nombreTr = trIdioma(t.tramiteNombre, ui.idiomaTicket);
+    const numero = parseInt(t.folio.split('-')[1],10);
+    const texto = en
+      ? 'Your ticket is '+prefijoHablado(t.folio)+', '+numero+'. For '+nombreTr+
+        '. There '+(antes===1?'is 1 person':'are '+antes+' people')+' ahead of you'+
+        '. Keep your printed ticket.'
+      : 'Su ficha es '+prefijoHablado(t.folio)+', '+numLetras(numero)+'. Para '+nombreTr+
+        '. Hay '+antes+(antes===1?' persona antes que usted':' personas antes que usted')+
+        '. Guarde su ficha impresa.';
+    narrarAccesibilidad('ticket:'+t.folio, texto, en);
+  })();
   return '<div class="entra" style="display:flex;justify-content:center">'+
     '<div class="card" style="text-align:center;max-width:400px;width:100%;padding:30px 36px;border-top:6px solid '+(t.preferencial?'var(--verde)':'var(--azul)')+'">'+
       (t.preferencial?'<div style="display:inline-flex;align-items:center;gap:6px;background:var(--verde);color:#fff;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:10px">'+ico('acceso',13)+' '+trT('PREFERENCIAL · LEY 7600')+'</div>':'')+
@@ -3729,17 +3829,16 @@ function vistaAdmin(){
     '<p style="font-size:12px;color:var(--dim);margin:0 0 8px;line-height:1.5">El anuncio dice el código del trámite (o «PREF» en preferenciales), el número consecutivo y el puesto — nunca el nombre completo del trámite, ni el nombre o la cédula del asociado.</p>'+
     (function(){
       // El navegador no puede inventar voces: solo puede elegir entre las que
-      // ya están instaladas en Windows/el equipo — pero la lista completa SÍ
-      // se muestra aquí (no solo el español latino que el sistema recomienda
-      // por defecto), porque se pidió poder buscar y guardar personalmente
-      // cualquier voz de Google (u otro proveedor) instalada, sin impedir
-      // elegir una voz de hombre, de España, o de cualquier otro idioma.
+      // ya están instaladas en Windows/el equipo. Aquí solo se listan español
+      // (latino) e inglés — los dos idiomas que de verdad se usan (llamado en
+      // español y atención en inglés): se pidió dejar de mostrar español de
+      // España y cualquier otro idioma instalado que no se ocupa, para no
+      // llenar el selector de opciones que nunca se van a usar.
       // El buscador de abajo filtra esta misma lista por nombre o idioma.
       const todas = window.speechSynthesis ? speechSynthesis.getVoices() : [];
       const costaRica = todas.filter(v=>v.lang&&v.lang.toLowerCase()==='es-cr');
       const latino = todas.filter(v=>esLatino(v)&&!costaRica.includes(v));
-      const espana = todas.filter(v=>esEspana(v));
-      const otras = todas.filter(v=>costaRica.indexOf(v)<0&&latino.indexOf(v)<0&&espana.indexOf(v)<0);
+      const ingles = todas.filter(v=>v.lang&&v.lang.toLowerCase().indexOf('en')===0);
       const etiquetaGenero = function(v){ const g=generoVoz(v); return g==='M'?' · masculina':(g==='F'?' · femenina':''); };
       const opt = v => '<option value="'+esc(v.name)+'"'+(c.vozNombre===v.name?' selected':'')+'>'+esc(v.name)+' — '+esc(v.lang)+etiquetaGenero(v)+'</option>';
       // Atajo para encontrar rápido una voz masculina en español latino de
@@ -3772,18 +3871,18 @@ function vistaAdmin(){
         '<select data-a="adm-voz" id="sel-voz"><option value="">Automática (español de Costa Rica si hay disponible, si no español latino)</option>';
       if (costaRica.length) s += '<optgroup label="Español de Costa Rica">'+costaRica.map(opt).join('')+'</optgroup>';
       if (latino.length) s += '<optgroup label="Español latinoamericano">'+latino.map(opt).join('')+'</optgroup>';
-      if (espana.length) s += '<optgroup label="Español de España">'+espana.map(opt).join('')+'</optgroup>';
-      if (otras.length) s += '<optgroup label="Otros idiomas">'+otras.map(opt).join('')+'</optgroup>';
+      if (ingles.length) s += '<optgroup label="Inglés (para atenciones en inglés)">'+ingles.map(opt).join('')+'</optgroup>';
       s += '</select>';
       // localService=false identifica las voces "de red" (se resuelven en un
       // servidor, no en el equipo) — así son, por ejemplo, las "Google
       // español…" de Chrome: solo aparecen si hay internet y el navegador ya
       // las consultó (por eso "Actualizar lista de voces" fuerza esa consulta
       // en vez de solo releer lo que ya estaba en memoria).
+      const mostrar = costaRica.length+latino.length+ingles.length;
       const red = todas.filter(v=>v.localService===false).length;
-      s += '<p style="font-size:11px;color:var(--dim);margin:6px 0 0">'+todas.length+' voces detectadas en este equipo ('+(costaRica.length+latino.length)+' en español latino'+(red?', '+red+' de red — como las «Google…», requieren internet':'')+'). El llamado usa español latino automáticamente si deja «Automática»; elija cualquier otra aquí solo si quiere forzar una voz distinta.</p>'+
+      s += '<p style="font-size:11px;color:var(--dim);margin:6px 0 0">'+mostrar+' voces detectadas en este equipo ('+(costaRica.length+latino.length)+' en español latino, '+ingles.length+' en inglés'+(red?', algunas de red — como las «Google…», requieren internet':'')+'). El llamado usa español latino automáticamente si deja «Automática»; elija cualquier otra aquí solo si quiere forzar una voz distinta.</p>'+
         (ui.vocesActualizando ? '<p style="font-size:11px;color:var(--azul);margin:4px 0 0;font-weight:600">'+ico('cruce',11)+' Buscando voces adicionales (incluye las de red de Google, si hay internet)…</p>' : '');
-      if (todas.length===0){
+      if (mostrar===0){
         s += '<div style="background:#FFF6E5;border:1px solid #F3D9A6;color:#8A5B00;border-radius:6px;padding:9px 12px;font-size:11.5px;line-height:1.5;margin-top:8px">'+
           '<b>No se detectó ninguna voz en este equipo.</b> Esta lista la arma el sistema operativo, no esta página — '+
           'para tener más opciones instale un paquete de voz en <b>Windows → Configuración → Hora e idioma → Voz</b> '+
@@ -4565,7 +4664,7 @@ function modalCedula(){
     '<p style="font-size:13px;color:var(--dim);margin:0 0 12px">La ficha <b style="color:var(--azul)">'+esc(f?f.folio:'')+
     '</b> no tiene cédula registrada porque no se digitó en el kiosco. Se guarda solo para efectos de seguimiento interno en Resumen y Reportes — nunca se muestra en pantallas públicas.</p>'+
     '<label class="lbl" style="margin-top:0">Cédula del asociado</label>'+
-    '<input data-a="cedula-manual" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Ej. 1-2345-6789" value="'+esc(ui.cedulaManual||'')+'" style="width:100%;font-size:15px;font-family:monospace">'+
+    '<input data-a="cedula-manual" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Ej. 1-2345-6789 (o DIMEX sin guiones)" value="'+esc(ui.cedulaManual||'')+'" style="width:100%;font-size:15px;font-family:monospace">'+
     (ui.cedulaManualError?'<p style="font-size:12px;color:var(--rojo);margin:8px 0 0">'+esc(ui.cedulaManualError)+'</p>':'')+
     '<div style="display:flex;justify-content:space-between;margin-top:16px">'+
     '<button class="btn b-claro" data-a="cerrar-modal">Cancelar</button>'+
@@ -5175,7 +5274,7 @@ async function accion(a, v, t, el){
       const d=(ui.cedula||'').replace(/\D/g,'');
       if (v==='limpiar') ui.cedula='';
       else if (v==='borrar') ui.cedula=d.slice(0,-1);
-      else if (d.length<9) ui.cedula=d+v;
+      else if (d.length<12) ui.cedula=d+v;
       // Solo se actualizan el visor y el botón, sin volver a dibujar toda la
       // pantalla — repintar en cada tecla reconstruía el contenedor ".entra"
       // y repetía su animación de entrada, dando un salto visual por dígito.
