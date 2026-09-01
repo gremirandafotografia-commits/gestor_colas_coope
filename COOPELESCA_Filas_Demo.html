@@ -1671,7 +1671,7 @@ function vistaKiosco(){
   if (paso==='bienvenida'){
     narrarAccesibilidad('bienvenida',
       'Bienvenido a '+sucObj.nombre+'. Toque en cualquier parte de la pantalla para tomar su ficha.');
-    return '<div class="entra" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:18px;align-items:stretch;min-height:480px">'+
+    return '<div class="entra" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:18px;align-items:stretch;min-height:480px">'+
       /* Izquierda: bienvenida y botón para tomar ficha */
       '<div class="card" style="border-radius:18px;padding:0;display:flex;flex-direction:column;overflow:hidden">'+
         '<div style="background:linear-gradient(150deg,var(--azul-osc),var(--azul) 60%,var(--azul-cla));color:#fff;padding:34px 28px;text-align:center">'+
@@ -1688,15 +1688,18 @@ function vistaKiosco(){
         '</div>'+
       '</div>'+
       /* Derecha: espacio publicitario, mismas piezas que la pantalla de sala.
-         Sin aspect-ratio fijo aquí a propósito: esta columna ya se estira
-         (align-items:stretch del grid) al alto de la columna de bienvenida,
-         que no depende del anuncio — eso es lo que le da un alto estable.
-         min-height:0 evita que el recuadro se niegue a encoger por debajo
-         del tamaño intrínseco de su contenido (comportamiento por defecto
-         de los ítems de grid/flex), que es lo que antes dejaba que la
-         imagen de turno decidiera el alto y "brincara" el resto del kiosco
-         al rotar el anuncio cada 30 s. */
-      '<div id="panel-anuncio" class="card" style="padding:0;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;border-radius:18px;min-height:0">'+anuncioHTML('kiosco')+'</div>'+
+         aspect-ratio:4/3 (el "casi cuadrado" recomendado para el tótem
+         vertical — ver admin, sección de anuncios) fija el alto a partir
+         del ancho de la columna nada más, así el recuadro nunca puede
+         forzar que la ventana del kiosco crezca ni que el resto de la
+         pantalla quede cortado: antes, al estirarse (align-items:stretch)
+         al alto de la columna de bienvenida, un desbalance entre el ancho
+         de esta columna y ese alto podía dejar el recuadro
+         desproporcionadamente alto. align-self:center + max-height son el
+         límite duro para esos casos. min-height:0 evita que el recuadro se
+         niegue a encoger por debajo del tamaño intrínseco de su contenido
+         (comportamiento por defecto de los ítems de grid/flex). */
+      '<div id="panel-anuncio" class="card" style="padding:0;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;border-radius:18px;aspect-ratio:4/3;align-self:center;max-height:55vh;min-height:0">'+anuncioHTML('kiosco')+'</div>'+
     '</div>';
   }
 
@@ -1912,7 +1915,7 @@ function vistaSala(){
   }
 
   /* --- Dos columnas: turno llamado + historial a la izquierda, anuncios a la derecha --- */
-  h += '<div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:16px;align-items:stretch">';
+  h += '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:stretch">';
 
   /* Columna izquierda */
   h += '<div style="display:flex;flex-direction:column;gap:14px">';
@@ -1978,9 +1981,11 @@ function vistaSala(){
      imagen de turno — así el recuadro nunca cambia de tamaño al rotar el
      anuncio y no arrastra un "brinco" en el resto de la pantalla. 2:1 es la
      relación apaisada con la que se diseñan las piezas de esta pantalla
-     (ver anuncioHTML). */
+     (ver anuncioHTML). max-height es un tope adicional para que, aun con
+     columnas anchas, el recuadro nunca empuje la página más allá de lo que
+     cabe en la pantalla del kiosco/sala. */
   h += '<div style="display:flex;flex-direction:column;gap:10px;align-self:start">'+
-    '<div id="panel-anuncio" class="card" style="padding:0;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;border-radius:8px;aspect-ratio:2/1;max-height:75vh;min-height:0">'+anuncioHTML('sala')+'</div>'+
+    '<div id="panel-anuncio" class="card" style="padding:0;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;border-radius:8px;aspect-ratio:2/1;max-height:55vh;min-height:0">'+anuncioHTML('sala')+'</div>'+
   '</div>';
 
   h += '</div>'; // fin grid de dos columnas
