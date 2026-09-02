@@ -244,6 +244,9 @@ ALTER TABLE configuracion ADD COLUMN IF NOT EXISTS powerbi_token TEXT NOT NULL D
 ALTER TABLE configuracion ADD COLUMN IF NOT EXISTS salesforce_url TEXT NOT NULL DEFAULT '';
 ALTER TABLE configuracion ADD COLUMN IF NOT EXISTS salesforce_token TEXT NOT NULL DEFAULT '';
 ALTER TABLE configuracion ADD COLUMN IF NOT EXISTS impresora_designada TEXT NOT NULL DEFAULT '';
+-- Segundos que cada anuncio permanece en pantalla antes de rotar al
+-- siguiente (kiosco y sala) — configurable desde Administración → Anuncios.
+ALTER TABLE configuracion ADD COLUMN IF NOT EXISTS anuncios_segundos INTEGER NOT NULL DEFAULT 60;
 
 CREATE TABLE IF NOT EXISTS anuncios (
   id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
