@@ -1577,6 +1577,14 @@ function sucKiosco(){ return (equipo&&equipo.sucursalId) || E.sucursales[0].id; 
  *  encuesta_preguntas.texto_en) porque las escribe Administración, no
  *  este archivo. */
 const TRADUCCIONES_EN = {
+  // --- pantalla de bienvenida (ver botón "English service") ---
+  'Bienvenido a':'Welcome to',
+  'Sirviendo con el Corazón':'Serving with the Heart',
+  'Toque aquí para tomar su ficha':'Touch here to get your ticket',
+  'persona en espera':'person waiting',
+  'personas en espera':'people waiting',
+  'Accesibilidad: guía de voz':'Accessibility: voice guide',
+  'Guía de voz activada':'Voice guide activated',
   '¿Qué trámite desea realizar?':'What service do you need?',
   'Toque el servicio que necesita':'Touch the service you need',
   'Trámites preferenciales — Ley 7600':'Priority service — Law 7600',
@@ -1669,28 +1677,42 @@ function vistaKiosco(){
   const trT = function(s){ return trIdioma(s, ui.idiomaTicket); };
 
   if (paso==='bienvenida'){
+    const ingles = ui.idiomaKiosko==='en';
     narrarAccesibilidad('bienvenida',
-      'Bienvenido a '+sucObj.nombre+'. Toque en cualquier parte de la pantalla para tomar su ficha.');
+      ingles
+        ? ('Welcome to '+sucObj.nombre+'. Touch anywhere on the screen to get your ticket.')
+        : ('Bienvenido a '+sucObj.nombre+'. Toque en cualquier parte de la pantalla para tomar su ficha.'),
+      ingles);
     /* max-width + margin:0 auto: igual que las pantallas de trámite/cédula
        (ver más abajo, max-width:720px/480px), para que en un tótem grande o
        una pantalla ampliada la bienvenida quede centrada en vez de
-       estirarse borde a borde. 1180px es un poco más ancho que antes
-       (llegaba a estirarse sin límite) para acomodar el anuncio ya más
-       grande, sin volverse desproporcionada en pantallas muy anchas. */
-    return '<div class="entra" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:18px;align-items:stretch;min-height:480px;max-width:1180px;margin:0 auto">'+
+       estirarse borde a borde. 1240px/1.35fr son un toque más anchos que
+       antes para acomodar el anuncio ya más grande, sin volverse
+       desproporcionada en pantallas muy anchas. */
+    return '<div class="entra" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:18px;align-items:stretch;min-height:480px;max-width:1240px;margin:0 auto">'+
       /* Izquierda: bienvenida y botón para tomar ficha */
       '<div class="card" style="border-radius:18px;padding:0;display:flex;flex-direction:column;overflow:hidden">'+
         '<div style="background:linear-gradient(150deg,var(--azul-osc),var(--azul) 60%,var(--azul-cla));color:#fff;padding:34px 28px;text-align:center">'+
-          '<div style="font-size:27px;font-weight:300;margin-bottom:16px">Bienvenido a</div>'+
+          '<div style="font-size:27px;font-weight:300;margin-bottom:16px">'+trK('Bienvenido a')+'</div>'+
           '<div style="display:flex;justify-content:center">'+logoHTML(58,true)+'</div>'+
-          '<div style="font-size:15px;font-style:italic;opacity:.95;margin-top:12px">Sirviendo con el Corazón</div>'+
+          '<div style="font-size:15px;font-style:italic;opacity:.95;margin-top:12px">'+trK('Sirviendo con el Corazón')+'</div>'+
         '</div>'+
         '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:26px 24px">'+
           '<div style="font-size:15px;color:var(--dim);margin-bottom:20px">'+
-            esc(sucObj.nombre)+'<br>'+enCola+(enCola===1?' persona en espera':' personas en espera')+'</div>'+
-          '<button class="btn b-azul" data-a="k-inicio" style="width:100%;padding:20px 24px;font-size:19px;border-radius:12px;justify-content:center;font-weight:700;box-shadow:0 5px 14px rgba(0,86,143,.24)">'+ico('ticket',24)+' Toque aquí para tomar su ficha</button>'+
+            esc(sucObj.nombre)+'<br>'+enCola+' '+trK(enCola===1?'persona en espera':'personas en espera')+'</div>'+
+          '<button class="btn b-azul" data-a="k-inicio" style="width:100%;padding:20px 24px;font-size:19px;border-radius:12px;justify-content:center;font-weight:700;box-shadow:0 5px 14px rgba(0,86,143,.24)">'+ico('ticket',24)+' '+trK('Toque aquí para tomar su ficha')+'</button>'+
           '<button class="btn '+(ui.accesKiosco?'b-verde':'b-claro')+'" data-a="k-acces" style="width:100%;margin-top:10px;padding:11px 0;justify-content:center;font-size:13px">'+
-            ico('acceso',15)+' '+(ui.accesKiosco?'Guía de voz activada':'Accesibilidad: guía de voz')+'</button>'+
+            ico('acceso',15)+' '+trK(ui.accesKiosco?'Guía de voz activada':'Accesibilidad: guía de voz')+'</button>'+
+          /* Atención en inglés: un solo toque activa el inglés temporal del
+             kiosco (igual que botonIdiomaKioscoHTML en la pantalla de
+             trámites) Y la guía de voz, para que quien no lea español pueda
+             encontrar y activar todo desde aquí mismo, sin depender de
+             entender "Accesibilidad: guía de voz" primero. Rotulado en
+             inglés a propósito (no trK) — a quien busca este botón es,
+             precisamente, a quien el resto de la pantalla no le sirve en
+             español. */
+          '<button class="btn '+(ingles?'b-verde':'b-claro')+'" data-a="k-ingles-atencion" style="width:100%;margin-top:8px;padding:11px 0;justify-content:center;font-size:13px">'+
+            ico('idioma',15)+' '+(ingles?'English service activated':'English service')+'</button>'+
         '</div>'+
       '</div>'+
       /* Derecha: espacio publicitario, mismas piezas que la pantalla de sala.
@@ -1705,7 +1727,7 @@ function vistaKiosco(){
          límite duro para esos casos. min-height:0 evita que el recuadro se
          niegue a encoger por debajo del tamaño intrínseco de su contenido
          (comportamiento por defecto de los ítems de grid/flex). */
-      '<div id="panel-anuncio" class="card" style="padding:0;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;border-radius:18px;aspect-ratio:4/3;align-self:center;max-height:55vh;min-height:0">'+anuncioHTML('kiosco')+'</div>'+
+      '<div id="panel-anuncio" class="card" style="padding:0;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;border-radius:18px;aspect-ratio:4/3;align-self:center;max-height:62vh;min-height:0">'+anuncioHTML('kiosco')+'</div>'+
     '</div>';
   }
 
@@ -1921,7 +1943,7 @@ function vistaSala(){
   }
 
   /* --- Dos columnas: turno llamado + historial a la izquierda, anuncios a la derecha --- */
-  h += '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:stretch">';
+  h += '<div style="display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:16px;align-items:stretch">';
 
   /* Columna izquierda */
   h += '<div style="display:flex;flex-direction:column;gap:14px">';
@@ -1991,7 +2013,7 @@ function vistaSala(){
      columnas anchas, el recuadro nunca empuje la página más allá de lo que
      cabe en la pantalla del kiosco/sala. */
   h += '<div style="display:flex;flex-direction:column;gap:10px;align-self:start">'+
-    '<div id="panel-anuncio" class="card" style="padding:0;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;border-radius:8px;aspect-ratio:2/1;max-height:55vh;min-height:0">'+anuncioHTML('sala')+'</div>'+
+    '<div id="panel-anuncio" class="card" style="padding:0;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;border-radius:8px;aspect-ratio:2/1;max-height:62vh;min-height:0">'+anuncioHTML('sala')+'</div>'+
   '</div>';
 
   h += '</div>'; // fin grid de dos columnas
@@ -5309,6 +5331,18 @@ async function accion(a, v, t, el){
     case 'k-paso': ui.paso=v; break;
     case 'k-reiniciar': reiniciarKiosco(); break;
     case 'k-idioma': ui.idiomaKiosko = ui.idiomaKiosko==='en' ? null : 'en'; break;
+    case 'k-ingles-atencion': {
+      // Botón de la bienvenida: activa a la vez el inglés temporal Y la guía
+      // de voz (ver comentario junto al botón en vistaKiosco) — así la
+      // persona no tiene que encontrar y tocar el botón de accesibilidad por
+      // separado. Se apaga junto con 'k-tramite'/reiniciarKiosco como el
+      // resto del inglés temporal del kiosco.
+      const activar = ui.idiomaKiosko!=='en';
+      ui.idiomaKiosko = activar ? 'en' : null;
+      if (activar) ui.accesKiosco = true;
+      ui.accesUltimaClave = null; // fuerza narrar de nuevo en el idioma que corresponda
+      break;
+    }
     case 'k-acces': {
       ui.accesKiosco = !ui.accesKiosco;
       if (!ui.accesKiosco && window.speechSynthesis) speechSynthesis.cancel();
@@ -6118,11 +6152,38 @@ setInterval(function(){
   const enKiosco = vista==='kiosco' && (ui.paso||'bienvenida')==='bienvenida';
   if (!enSala && !enKiosco) return;
   const pantalla = enKiosco ? 'kiosco' : 'sala';
-  const n = anunciosDe(pantalla).length;
-  if (n<2) return;
-  ui.anuncioIndex = ((ui.anuncioIndex||0)+1) % n;
-  const panel = document.getElementById('panel-anuncio');
-  if (panel) panel.innerHTML = anuncioHTML(pantalla);
+  const lista = anunciosDe(pantalla);
+  if (lista.length<2) return;
+  const siguiente = ((ui.anuncioIndex||0)+1) % lista.length;
+  /* Precarga el siguiente anuncio ANTES de mostrarlo: antes se ponía el
+     <img>/<video> con el src ya asignado y el recuadro (fondo blanco de
+     #panel-anuncio) quedaba en blanco mientras el navegador todavía lo
+     bajaba de la red — con imágenes/videos pesados o una red lenta de
+     sucursal, ese hueco en blanco cada minuto se sentía como si la pantalla
+     entera se hubiera "refrescado". Recién se pinta cuando el archivo ya
+     está listo (en caché), así el cambio es instantáneo; el timeout de
+     respaldo evita quedarse esperando para siempre si el archivo nunca
+     termina de cargar. */
+  const item = lista[siguiente];
+  const mostrar = function(){
+    ui.anuncioIndex = siguiente;
+    const panel = document.getElementById('panel-anuncio');
+    if (panel) panel.innerHTML = anuncioHTML(pantalla);
+  };
+  let listo = false;
+  const usar = function(){ if (listo) return; listo=true; mostrar(); };
+  if (item.tipo==='video'){
+    const v = document.createElement('video');
+    v.muted = true; v.preload = 'auto'; v.src = item.src;
+    v.addEventListener('canplaythrough', usar, {once:true});
+    v.addEventListener('error', usar, {once:true});
+    setTimeout(usar, 4000);
+  } else {
+    const img = new Image();
+    img.onload = usar; img.onerror = usar;
+    img.src = item.src;
+    if (img.complete) usar();
+  }
 }, 60000);
 
 /* Voces disponibles al cargar */
