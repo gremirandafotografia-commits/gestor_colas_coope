@@ -4110,11 +4110,13 @@ function stat(l,v,chico){
 
 /** Rango de fechas activo en el panel de reportes: inicio y corte inclusive. */
 function rangoReporte(){
-  /* Las exportaciones (PDF y CSV) usan exactamente el mismo período que los
-     tableros en pantalla, para que los números del archivo y los de la
-     pantalla nunca se contradigan. */
-  const r = rangoPeriodo();
-  return {ini:r.ini, fin:r.fin, plataforma:''};
+  /* Las exportaciones (PDF y CSV) usan exactamente el mismo período Y la
+     misma sucursal que los tableros en pantalla — antes solo heredaba el
+     período, así que al filtrar Resumen/Reportes a una sucursal, el PDF y
+     el CSV seguían saliendo con TODAS las sucursales (y sus funcionarios),
+     contradiciendo lo que se veía filtrado en pantalla. */
+  const r = rangoPeriodo(), pf = filtroPeriodo();
+  return {ini:r.ini, fin:r.fin, sucursal:pf.sucursal||'', plataforma:''};
 }
 /** Texto legible del período activo, para encabezar los reportes exportados. */
 function etiquetaPeriodo(){
@@ -4148,6 +4150,7 @@ function calcularMetricas(filtro){
   const r = rangoReporte();
   const turnos = E.turnos.filter(function(t){
     if (!dentroRango(t.horaCreado, r)) return false;
+    if (r.sucursal && t.sucursalId !== r.sucursal) return false;
     if (r.plataforma){
       const p = t.puestoId ? puestoPorId(t.puestoId) : null;
       if (!p || p.nombre !== r.plataforma) return false;
@@ -4157,6 +4160,7 @@ function calcularMetricas(filtro){
   });
   const encuestas = (E.encuestasRespuestas||[]).filter(function(x){
     if (!dentroRango(x.fecha, r)) return false;
+    if (r.sucursal && x.sucursalId !== r.sucursal) return false;
     if (r.plataforma && x.plataforma !== r.plataforma) return false;
     if (fEncuesta && !fEncuesta(x)) return false;
     return true;
@@ -4167,6 +4171,7 @@ function calcularMetricas(filtro){
   // función, en vez de duplicar la lógica de rango en otro lado.
   const pausas = (E.pausasHistorial||[]).filter(function(x){
     if (!dentroRango(x.desde, r)) return false;
+    if (r.sucursal && x.sucursalId !== r.sucursal) return false;
     if (r.plataforma && x.puestoNombre !== r.plataforma) return false;
     if (fPausa && !fPausa(x)) return false;
     return true;
@@ -4881,14 +4886,24 @@ function modalCedula(){
 function filtroDetalle(tipo, clave){
   if (tipo==='usuario'){
     const clv = function(t){ return t.atendidoPor ? usuarioCorto(t.atendidoPor) : (t.puestoNombre||'—'); };
+    // pausas_historial no guarda quién atendía el puesto (ver schema.sql), así
+    // que no hay forma exacta de saber cuáles detenciones son "de esta
+    // persona". Lo más cerca que se puede llegar sin cambiar el esquema es
+    // acotar a los puestos que ESTE funcionario realmente usó en el período
+    // filtrado — antes no se filtraba nada y el reporte individual de un
+    // funcionario traía el tiempo detenido de TODOS los puestos y personas.
+    const puestosDeEste = new Set(E.turnos.filter(function(t){ return clv(t)===clave; })
+      .map(function(t){ return t.puestoId; }).filter(Boolean));
     return {
       turno: function(t){ return clv(t)===clave; },
-      encuesta: function(e){ const t=E.turnos.find(function(x){ return x.id===e.turnoId; }); return !!t && clv(t)===clave; }
+      encuesta: function(e){ const t=E.turnos.find(function(x){ return x.id===e.turnoId; }); return !!t && clv(t)===clave; },
+      pausa: function(x){ return puestosDeEste.has(x.puestoId); }
     };
   }
   if (tipo==='puesto') return {
     turno: function(t){ return t.puestoId===clave; },
-    encuesta: function(e){ return e.puestoId===clave; }
+    encuesta: function(e){ return e.puestoId===clave; },
+    pausa: function(x){ return x.puestoId===clave; }
   };
   if (tipo==='tramite') return {
     turno: function(t){ return t.tramiteId===clave; },
