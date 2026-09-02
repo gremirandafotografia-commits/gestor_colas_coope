@@ -1671,7 +1671,13 @@ function vistaKiosco(){
   if (paso==='bienvenida'){
     narrarAccesibilidad('bienvenida',
       'Bienvenido a '+sucObj.nombre+'. Toque en cualquier parte de la pantalla para tomar su ficha.');
-    return '<div class="entra" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:18px;align-items:stretch;min-height:480px">'+
+    /* max-width + margin:0 auto: igual que las pantallas de trámite/cédula
+       (ver más abajo, max-width:720px/480px), para que en un tótem grande o
+       una pantalla ampliada la bienvenida quede centrada en vez de
+       estirarse borde a borde. 1180px es un poco más ancho que antes
+       (llegaba a estirarse sin límite) para acomodar el anuncio ya más
+       grande, sin volverse desproporcionada en pantallas muy anchas. */
+    return '<div class="entra" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:18px;align-items:stretch;min-height:480px;max-width:1180px;margin:0 auto">'+
       /* Izquierda: bienvenida y botón para tomar ficha */
       '<div class="card" style="border-radius:18px;padding:0;display:flex;flex-direction:column;overflow:hidden">'+
         '<div style="background:linear-gradient(150deg,var(--azul-osc),var(--azul) 60%,var(--azul-cla));color:#fff;padding:34px 28px;text-align:center">'+
@@ -6148,6 +6154,30 @@ if (window.speechSynthesis) {
 setInterval(function(){
   if (sesion && (vista==='sala'||vista==='operador'||vista==='kiosco'||vista==='encuestas')) refrescarVistaActual();
 }, 6000);
+
+/* Auto-recarga cuando el servidor publica una versión nueva: una pantalla
+   de sala o de kiosco normalmente se deja la pestaña abierta días enteros
+   sin que nadie la recargue a mano, así que un despliegue nuevo (como este
+   mismo cambio) nunca llegaba a esa pantalla — seguía corriendo el código
+   viejo en memoria indefinidamente, aunque el servidor ya sirviera el
+   archivo actualizado. Cada 2 min se compara el ETag de '/' contra el que
+   había al cargar la página; si cambió, se recarga sola, pero SOLO en las
+   pantallas públicas y solo cuando están en un punto sin nada a medio
+   llenar (bienvenida del kiosco, sala, encuestas) — nunca en ventanilla o
+   Administración, para no cortar a alguien a medio trámite. */
+let etagCargado = null;
+async function revisarNuevaVersion(){
+  try{
+    const r = await fetch(location.pathname, { method:'HEAD', cache:'no-store' });
+    const etag = r.headers.get('etag') || r.headers.get('last-modified');
+    if (!etag) return;
+    if (etagCargado===null){ etagCargado = etag; return; }
+    const pantallaOciosa = vista==='sala' || vista==='encuestas' || (vista==='kiosco' && (ui.paso||'bienvenida')==='bienvenida');
+    if (etag!==etagCargado && pantallaOciosa) location.reload();
+  }catch(e){}
+}
+revisarNuevaVersion();
+setInterval(revisarNuevaVersion, 120000);
 
 /* ---------------- arranque ---------------- */
 (async function iniciar(){
