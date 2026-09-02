@@ -1705,10 +1705,9 @@ function vistaKiosco(){
             ico('acceso',15)+' '+trK(ui.accesKiosco?'Guía de voz activada':'Accesibilidad: guía de voz')+'</button>'+
           /* Atención en inglés: un solo toque activa el inglés temporal del
              kiosco (igual que botonIdiomaKioscoHTML en la pantalla de
-             trámites) Y la guía de voz, para que quien no lea español pueda
-             encontrar y activar todo desde aquí mismo, sin depender de
-             entender "Accesibilidad: guía de voz" primero. Rotulado en
-             inglés a propósito (no trK) — a quien busca este botón es,
+             trámites), pero NO activa la guía de voz por su cuenta — esa es
+             una decisión aparte del asociado, con su propio botón. Rotulado
+             en inglés a propósito (no trK) — a quien busca este botón es,
              precisamente, a quien el resto de la pantalla no le sirve en
              español. */
           '<button class="btn '+(ingles?'b-verde':'b-claro')+'" data-a="k-ingles-atencion" style="width:100%;margin-top:8px;padding:11px 0;justify-content:center;font-size:13px">'+
@@ -5155,6 +5154,11 @@ function reiniciarKiosco(){
   ui.kioscoError=null; ui.idiomaKiosko=null; ui.idiomaTicket=null;
   ui.accesKiosco=false; ui.accesUltimaClave=null;
   if (window.speechSynthesis) speechSynthesis.cancel();
+  // Justo terminó la ficha de esta persona y el kiosco vuelve a la
+  // bienvenida para la siguiente — el otro punto natural (ver
+  // revisarNuevaVersion/recargarSiHayVersionNueva) en el que recargar por
+  // un despliegue nuevo no interrumpe a nadie.
+  recargarSiHayVersionNueva();
   refrescarKiosco().then(pintar);
 }
 
@@ -5332,14 +5336,11 @@ async function accion(a, v, t, el){
     case 'k-reiniciar': reiniciarKiosco(); break;
     case 'k-idioma': ui.idiomaKiosko = ui.idiomaKiosko==='en' ? null : 'en'; break;
     case 'k-ingles-atencion': {
-      // Botón de la bienvenida: activa a la vez el inglés temporal Y la guía
-      // de voz (ver comentario junto al botón en vistaKiosco) — así la
-      // persona no tiene que encontrar y tocar el botón de accesibilidad por
-      // separado. Se apaga junto con 'k-tramite'/reiniciarKiosco como el
-      // resto del inglés temporal del kiosco.
-      const activar = ui.idiomaKiosko!=='en';
-      ui.idiomaKiosko = activar ? 'en' : null;
-      if (activar) ui.accesKiosco = true;
+      // Botón de la bienvenida: solo cambia el idioma de la pantalla (igual
+      // que el botón de inglés de las pantallas de trámite). La guía de voz
+      // es una decisión aparte del asociado — este botón NUNCA la activa
+      // solo; si ya estaba activada, sigue narrando pero ya en inglés.
+      ui.idiomaKiosko = ui.idiomaKiosko==='en' ? null : 'en';
       ui.accesUltimaClave = null; // fuerza narrar de nuevo en el idioma que corresponda
       break;
     }
@@ -5467,7 +5468,11 @@ async function accion(a, v, t, el){
       ui.encError = null;
       ui.encPaso='gracias'; ui.encRespuestas={}; ui.encIndice=0;
       clearTimeout(temporizadorEncuesta);
-      temporizadorEncuesta = setTimeout(function(){ ui.encPaso='idle'; ui.encTurno=null; refrescarEncuestas().then(pintar); }, 2000);
+      temporizadorEncuesta = setTimeout(function(){
+        ui.encPaso='idle'; ui.encTurno=null;
+        recargarSiHayVersionNueva(); // ver reiniciarKiosco: mismo punto natural, para la encuesta
+        refrescarEncuestas().then(pintar);
+      }, 2000);
       break;
     }
 
@@ -6151,6 +6156,13 @@ setInterval(function(){
   const enSala = vista==='sala';
   const enKiosco = vista==='kiosco' && (ui.paso||'bienvenida')==='bienvenida';
   if (!enSala && !enKiosco) return;
+  // Este es el único momento en que la pantalla "debería" cambiar sola: ya
+  // pasó el tiempo de imagen definido para el anuncio. Si mientras tanto se
+  // detectó una versión nueva del servidor (ver revisarNuevaVersion), esta
+  // es la oportunidad de recargar sin que se note — de todos modos la
+  // pantalla ya iba a cambiar. recargarSiHayVersionNueva() no hace nada si
+  // no hay versión nueva pendiente.
+  recargarSiHayVersionNueva();
   const pantalla = enKiosco ? 'kiosco' : 'sala';
   const lista = anunciosDe(pantalla);
   if (lista.length<2) return;
@@ -6218,24 +6230,34 @@ setInterval(function(){
 
 /* Auto-recarga cuando el servidor publica una versión nueva: una pantalla
    de sala o de kiosco normalmente se deja la pestaña abierta días enteros
-   sin que nadie la recargue a mano, así que un despliegue nuevo (como este
-   mismo cambio) nunca llegaba a esa pantalla — seguía corriendo el código
-   viejo en memoria indefinidamente, aunque el servidor ya sirviera el
-   archivo actualizado. Cada 2 min se compara el ETag de '/' contra el que
-   había al cargar la página; si cambió, se recarga sola, pero SOLO en las
-   pantallas públicas y solo cuando están en un punto sin nada a medio
-   llenar (bienvenida del kiosco, sala, encuestas) — nunca en ventanilla o
-   Administración, para no cortar a alguien a medio trámite. */
+   sin que nadie la recargue a mano, así que un despliegue nuevo nunca
+   llegaba a esa pantalla — seguía corriendo el código viejo en memoria
+   indefinidamente, aunque el servidor ya sirviera el archivo actualizado.
+   Cada 2 min se compara el ETag de '/' contra el que había al cargar la
+   página, pero si cambió NO se recarga de inmediato — eso interrumpía a
+   quien estuviera viendo el anuncio a medio contar o a medio trámite,
+   sintiéndose como si la pantalla se "refrescara sola" sin razón. Solo se
+   deja la marca puesta (versionNueva) y quien de verdad decide CUÁNDO
+   recargar es cada pantalla, en su propio punto natural de cambio: la
+   rotación del anuncio (kiosco y sala, ver más abajo) o el reinicio del
+   kiosco al terminar una ficha (reiniciarKiosco) — nunca antes de eso, y
+   nunca en ventanilla o Administración. */
 let etagCargado = null;
+let versionNueva = false;
 async function revisarNuevaVersion(){
   try{
     const r = await fetch(location.pathname, { method:'HEAD', cache:'no-store' });
     const etag = r.headers.get('etag') || r.headers.get('last-modified');
     if (!etag) return;
     if (etagCargado===null){ etagCargado = etag; return; }
-    const pantallaOciosa = vista==='sala' || vista==='encuestas' || (vista==='kiosco' && (ui.paso||'bienvenida')==='bienvenida');
-    if (etag!==etagCargado && pantallaOciosa) location.reload();
+    if (etag!==etagCargado) versionNueva = true;
   }catch(e){}
+}
+/** Recarga la página SOLO si ya se detectó una versión nueva del servidor,
+ *  y solo se llama desde los puntos de cambio natural de cada pantalla (ver
+ *  comentario de revisarNuevaVersion) — nunca a mitad de algo. */
+function recargarSiHayVersionNueva(){
+  if (versionNueva) location.reload();
 }
 revisarNuevaVersion();
 setInterval(revisarNuevaVersion, 120000);
