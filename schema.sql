@@ -60,6 +60,14 @@ CREATE TABLE IF NOT EXISTS usuarios (
   temporal      BOOLEAN NOT NULL DEFAULT true,
   creado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- Token de primer ingreso: aleatorio por cuenta y con vencimiento, en vez de
+-- una palabra fija compartida por todos los usuarios (ver src/routes/auth.js).
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS token_temporal_hash TEXT;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS token_temporal_vence TIMESTAMPTZ;
+-- Se incluye en cada JWT firmado; subirlo (al degradar rol o restablecer la
+-- contraseña) invalida de inmediato cualquier sesión ya emitida para esa
+-- cuenta, sin depender de que el token expire solo (ver exigirSesion).
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 1;
 
 -- ---------------------------------------------------------------------------
 -- CONTADORES (numeración de folios por sucursal+trámite, y el consecutivo)
