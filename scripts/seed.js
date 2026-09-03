@@ -7,6 +7,7 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
+const { hashClave, generarTokenTemporal } = require('../src/auth');
 
 async function main() {
   const pool = new Pool({
@@ -22,10 +23,21 @@ async function main() {
     }
     const sql = fs.readFileSync(path.join(__dirname, '..', 'seed.sql'), 'utf8');
     await pool.query(sql);
+
+    // seed.sql deja el admin inicial sin token temporal (no puede llamar a
+    // bcrypt desde SQL puro) — se lo asignamos aquí, igual que hace
+    // POST /api/auth/usuarios para cualquier otro usuario nuevo.
+    const { token, vence } = generarTokenTemporal();
+    const tokenHash = await hashClave(token);
+    await pool.query(
+      'UPDATE usuarios SET token_temporal_hash = $1, token_temporal_vence = $2 WHERE correo = $3',
+      [tokenHash, vence, 'admin@coopelesca.co.cr']
+    );
+
     console.log('Datos iniciales cargados correctamente.');
     console.log('');
     console.log('Usuario administrador: admin@coopelesca.co.cr');
-    console.log('Contraseña temporal:   coopelesca');
+    console.log('Contraseña temporal:   ' + token + '  (vence ' + vence.toISOString().slice(0, 10) + ')');
     console.log('(el sistema pedirá definir una contraseña propia en el primer ingreso)');
   } catch (e) {
     console.error('No se pudieron cargar los datos iniciales:', e.message);
