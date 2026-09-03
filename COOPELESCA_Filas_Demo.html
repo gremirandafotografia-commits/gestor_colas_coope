@@ -1486,7 +1486,6 @@ function vistaLogin(){
       '<button class="btn b-azul" data-a="login-entrar" style="width:100%;margin-top:16px;padding:13px 0;justify-content:center;font-size:15px">'+ico('salir',17)+' Ingresar</button>'+
       '<p style="font-size:11.5px;color:var(--dim);margin:14px 0 0;line-height:1.5">Si es su primer ingreso, use la contraseña temporal que le entregó el administrador; el sistema le pedirá definir una propia. Si la olvidó, solicite al administrador que la restablezca.</p>'+
     '</div>'+
-    '<div style="text-align:center;margin-top:14px;font-size:11px;color:var(--dim)">Usuario de prueba: <b>admin'+DOMINIO+'</b> · contraseña temporal <b>coopelesca</b></div>'+
   '</div>';
 }
 
@@ -3852,7 +3851,7 @@ function vistaAdmin(){
         '<select data-a="usr-nuevo-rol" style="font-size:12.5px"><option value="operador"'+(ui.nuevoUsrRol!=='admin'?' selected':'')+'>Funcionario</option>'+
         '<option value="admin"'+(ui.nuevoUsrRol==='admin'?' selected':'')+'>Administrador</option></select></div>'+
       '<button class="btn b-azul" data-a="usr-agregar">'+ico('mas',14)+' Agregar</button></div>'+
-      '<p style="font-size:11.5px;color:var(--dim);margin:10px 0 0">El usuario nuevo ingresa con la contraseña temporal <b>coopelesca</b> y el sistema le pedirá definir la suya. «Restablecer» devuelve la cuenta a esa contraseña temporal.</p>'+
+      '<p style="font-size:11.5px;color:var(--dim);margin:10px 0 0">Al agregar o restablecer un usuario, el sistema genera una contraseña temporal de un solo uso y se la muestra aquí mismo — entréguesela por un medio seguro, vence en 7 días si nadie la usa.</p>'+
       '</div>';
     return h;
   }
