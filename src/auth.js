@@ -1,4 +1,3 @@
-const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -8,18 +7,20 @@ if (!JWT_SECRET) {
   throw new Error('Falta JWT_SECRET en el archivo .env — vea .env.example');
 }
 
-// Sin caracteres ambiguos (0/O, 1/I/l) para que se pueda dictar o copiar sin
-// errores al entregarlo a la persona que recibe la cuenta.
-const ALFABETO_TOKEN = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
 const HORAS_VENCE_TOKEN_TEMPORAL = 24 * 7; // una semana para completar el primer ingreso
 
+// Por decisión de Administración, la contraseña temporal (primer ingreso o
+// cualquier restablecimiento por bloqueo) es siempre esta misma palabra fija
+// en vez de un token aleatorio por cuenta — así el administrador siempre
+// sabe cuál es, sin tener que copiarla ni guardarla en ningún lado. Sigue
+// venciendo a los 7 días (HORAS_VENCE_TOKEN_TEMPORAL) y el primer ingreso
+// sigue exigiendo definir una contraseña propia, así que esto no reemplaza
+// la contraseña real de nadie una vez que la define.
+const CLAVE_TEMPORAL_FIJA = 'Coopelesca';
+
 function generarTokenTemporal() {
-  let token = '';
-  for (let i = 0; i < 10; i++) {
-    token += ALFABETO_TOKEN[crypto.randomInt(ALFABETO_TOKEN.length)];
-  }
   const vence = new Date(Date.now() + HORAS_VENCE_TOKEN_TEMPORAL * 3600 * 1000);
-  return { token, vence };
+  return { token: CLAVE_TEMPORAL_FIJA, vence };
 }
 
 async function verificarTokenTemporal(clave, u) {

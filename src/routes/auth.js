@@ -21,9 +21,10 @@ router.post('/login', async (req, res) => {
   if (!u) return res.status(401).json({ error: 'No existe un usuario con ese correo institucional.' });
 
   if (u.temporal) {
-    // Primer ingreso: el token temporal es aleatorio por cuenta y vence a
-    // los 7 días (ver POST /usuarios y /restablecer). No se marca como
-    // iniciada hasta que definan su propia clave en /definir-clave.
+    // Primer ingreso: la contraseña temporal es la palabra fija definida en
+    // generarTokenTemporal() (ver src/auth.js) y vence a los 7 días (ver
+    // POST /usuarios y /restablecer). No se marca como iniciada hasta que
+    // definan su propia clave en /definir-clave.
     if (!(await verificarTokenTemporal(clave, u))) {
       return res.status(401).json({ error: 'La contraseña temporal no es correcta o venció.' });
     }
