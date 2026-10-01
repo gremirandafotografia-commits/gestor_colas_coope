@@ -44,15 +44,17 @@ async function verificarClave(clave, hash) {
   return bcrypt.compare(clave, hash);
 }
 
-function firmarToken(usuario) {
-  // El token vive poco (10 h ~ un turno de trabajo); el personal vuelve a
-  // entrar al día siguiente. Ajuste expiresIn según la política de la
-  // cooperativa.
+function firmarToken(usuario, opciones) {
+  // El token vive poco por defecto (10 h ~ un turno de trabajo); el personal
+  // vuelve a entrar al día siguiente. POST /auth/sesion-larga pide una
+  // vigencia más larga explícitamente para pantallas fijas sin atención
+  // humana constante (kiosco, pantalla de sala) — ver src/routes/auth.js.
   //
   // El rol NO se firma en el token: exigirSesion lo relee de la base en cada
   // request, junto con `v`, para que un cambio de rol o un restablecimiento
   // de contraseña surta efecto de inmediato y no solo cuando el token expire.
-  return jwt.sign({ correo: usuario.correo, v: usuario.token_version }, JWT_SECRET, { expiresIn: '10h' });
+  const expiresIn = (opciones && opciones.expiresIn) || '10h';
+  return jwt.sign({ correo: usuario.correo, v: usuario.token_version }, JWT_SECRET, { expiresIn });
 }
 
 function verificarToken(token) {

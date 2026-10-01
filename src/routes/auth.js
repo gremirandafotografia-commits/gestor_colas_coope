@@ -38,6 +38,20 @@ router.post('/login', async (req, res) => {
   res.json({ token, correo: u.correo, rol: u.rol, nombre: u.nombre });
 });
 
+/** POST /api/auth/sesion-larga — reemite el token de la sesión ACTUAL con
+ *  vigencia de 30 días en vez de las 10h normales. Pensado para pantallas
+ *  fijas sin atención humana constante (kiosco, pantalla de sala): el
+ *  cliente la llama una sola vez, justo después de registrar el equipo con
+ *  ese rol, para que no vuelva a pedir inicio de sesión en cada reinicio
+ *  del navegador. Requiere ya estar autenticado — no reemplaza el login. */
+router.post('/sesion-larga', exigirSesion, async (req, res) => {
+  const { rows } = await query('SELECT * FROM usuarios WHERE correo = $1', [req.usuario.correo]);
+  const u = rows[0];
+  if (!u) return res.status(401).json({ error: 'No se pudo verificar la cuenta.' });
+  const token = firmarToken(u, { expiresIn: '30d' });
+  res.json({ token });
+});
+
 /** POST /api/auth/definir-clave  { correo, claveTemporal, claveNueva } */
 router.post('/definir-clave', async (req, res) => {
   const correo = normalizarCorreo(req.body.correo);
