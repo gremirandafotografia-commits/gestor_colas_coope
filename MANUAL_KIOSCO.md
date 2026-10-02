@@ -127,7 +127,37 @@ robusto que el acceso directo del paso 3, pero no siempre está disponible
 según la edición de Windows. Si no aparece, el método de los pasos 3-5
 sigue siendo un respaldo sólido.
 
-## 7. Por qué la sesión no vuelve a pedir login en kiosco/sala/encuestas
+## 7. Tablets Android (encuestas)
+
+Chrome en Android no acepta parámetros como `--kiosk` desde un acceso
+directo — el equivalente ahí son estos dos pasos:
+
+**7.1 — Pantalla completa, sin barra de direcciones (gratis, sin instalar nada)**
+1. Abra `https://gestorcolascoope-production.up.railway.app/` en Chrome.
+2. Menú (los tres puntos, arriba a la derecha) → **"Agregar a pantalla de
+   inicio"**.
+3. Abra la app desde ese ícono nuevo en el escritorio del tablet, no desde
+   Chrome directamente — así abre sin barra de direcciones ni barra de
+   estado del sistema (se ve como una app, no como una página web).
+
+**7.2 — Que nadie pueda salir de la app (bloqueo de pantalla)**
+1. Abra la app desde el ícono de la pantalla de inicio.
+2. Toque el botón de apps recientes (el cuadrado, o deslice desde abajo
+   según el modelo) para ver la tarjeta de la app.
+3. Toque el ícono de la app en la parte de arriba de esa tarjeta → **"Fijar
+   esta app"** (o "Pin"/"App pinning", el nombre varía según el fabricante).
+4. Para desbloquear (mantenimiento): mantenga presionados los botones de
+   atrás y recientes al mismo tiempo (o siga la instrucción en pantalla).
+
+**7.3 — Más robusto (recomendado para uso prolongado sin supervisión)**
+Instale **Fully Kiosk Browser** (gratis, Play Store) — es la app estándar
+para justo este caso: fija el tablet a una sola URL, pantalla completa de
+verdad, arranque automático al encender, sin notificaciones ni barra de
+estado, y se puede administrar de forma remota. Al configurarlo, ponga
+como "Start URL" la misma dirección de arriba y active "Kiosk Mode" y
+"Autostart on boot".
+
+## 8. Por qué la sesión no vuelve a pedir login en kiosco/sala/encuestas
 
 Las pantallas de kiosco, sala y encuestas reciben, al registrarse por
 primera vez, una sesión de **30 días** en vez de las 10 horas normales — y
