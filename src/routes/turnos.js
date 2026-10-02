@@ -141,12 +141,26 @@ router.post('/turnos/llamar', exigirSesion, async (req, res) => {
   if (await colas.puestoEnPausa(puesto.id)) return res.status(409).json({ error: 'El puesto está en pausa.' });
   if (await colas.puestoOcupado(puesto.id)) return res.status(409).json({ error: 'El puesto ya tiene una ficha activa.' });
 
-  const cola = await colas.colaPuesto(req.body.sucursalId, puesto);
   let turno;
   if (numeroRellamado) {
+    // El rellamado manual por número busca aparte de colaPuesto/colaSucursal
+    // (que solo traen estado='esperando') porque también debe encontrar
+    // fichas marcadas «ausente» — el asociado que no se presentó y volvió
+    // después — sin que el personal tenga que acordarse de usar «Retornar
+    // a cola» primero. Conserva la misma restricción de qué trámites puede
+    // atender este puesto (tramitesHabilitados) que ya aplicaba antes.
     const numero = parseInt(String(numeroRellamado).replace(/\D/g, ''), 10);
-    turno = cola.find((t) => !isNaN(numero) && t.consecutivo === numero);
+    if (!isNaN(numero)) {
+      const permitidos = await colas.tramitesHabilitados(req.body.sucursalId, puesto);
+      const { rows: filaManual } = await query(
+        `SELECT * FROM turnos WHERE sucursal_id = $1 AND consecutivo = $2 AND estado IN ('esperando','ausente')
+           AND tramite_id = ANY($3::text[]) LIMIT 1`,
+        [req.body.sucursalId, numero, Array.from(permitidos)]
+      );
+      turno = filaManual[0];
+    }
   } else {
+    const cola = await colas.colaPuesto(req.body.sucursalId, puesto);
     turno = cola[0];
   }
   if (!turno) return res.status(404).json({ error: 'No hay una ficha así en la cola de este puesto.' });

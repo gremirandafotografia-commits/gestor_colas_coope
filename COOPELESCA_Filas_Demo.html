@@ -1986,7 +1986,12 @@ function vistaSala(){
      llamado (primer llamado o rellamado), exactamente una vez por cambio.
      Ya no se dice el trámite ni el nombre/cédula del asociado. */
   if (act){
-    const firma = act.id+'-'+act.llamados;
+    // horaLlamado (no llamados) identifica cada llamado real: "llamados"
+    // vuelve a valer 1 tanto en el primer llamado de una ficha como en un
+    // rellamado manual después de marcarla ausente (ver POST
+    // /turnos/llamar en el backend), así que usarlo aquí hacía que la sala
+    // creyera que ya había anunciado ese rellamado y se quedara callada.
+    const firma = act.id+'-'+act.horaLlamado;
     if (ui.anunciado !== firma){
       ui.anunciado = firma;
       anunciar({folio:act.folio, consecutivo:act.consecutivo, puesto:act.puestoNombre,
@@ -5698,8 +5703,16 @@ async function accion(a, v, t, el){
       clearTimeout(temporizadorEncuesta);
       temporizadorEncuesta = setTimeout(function(){
         ui.encPaso='idle'; ui.encTurno=null;
+        // pintar() aquí, antes de la llamada de red: así la pantalla vuelve a
+        // la bienvenida de inmediato sin importar qué tan rápido responda el
+        // servidor. Antes dependía de refrescarEncuestas().then(pintar) — si
+        // esa llamada fallaba o se demoraba, la pantalla se quedaba pegada en
+        // «¡Muchas gracias!» aunque por dentro ya estuviera en «idle».
+        pintar();
         recargarSiHayVersionNueva(); // ver reiniciarKiosco: mismo punto natural, para la encuesta
-        refrescarEncuestas().then(pintar);
+        refrescarEncuestas().then(pintar).catch(function(e){
+          console.error('No se pudo refrescar el estado de la encuesta', e);
+        });
       }, 2000);
       break;
     }
