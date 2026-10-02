@@ -5498,12 +5498,13 @@ async function accion(a, v, t, el){
       }
       guardarEquipo(d); vista=d.rol; demo=false;
       ui={};
-      // Kiosco y pantalla de sala quedan fijos, sin nadie pendiente de volver
-      // a iniciar sesión — se cambia el token a vigencia larga (30 días)
-      // justo aquí, una sola vez, para que sobrevivan indefinidamente a
-      // reinicios del navegador o del equipo. Ventanilla/Administración
-      // conservan la sesión normal de 10h (ver POST /auth/sesion-larga).
-      if ((d.rol==='kiosco' || d.rol==='sala') && sesion){
+      // Kiosco, pantalla de sala y la tableta de encuestas quedan fijos, sin
+      // nadie pendiente de volver a iniciar sesión — se cambia el token a
+      // vigencia larga (30 días) justo aquí, una sola vez, para que
+      // sobrevivan indefinidamente a reinicios del navegador o del equipo.
+      // Ventanilla/Administración conservan la sesión normal de 10h (ver
+      // POST /auth/sesion-larga).
+      if ((d.rol==='kiosco' || d.rol==='sala' || d.rol==='encuestas') && sesion){
         try{
           const rl = await api('/api/auth/sesion-larga', {method:'POST'});
           JWT = rl.token;

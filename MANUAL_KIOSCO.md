@@ -1,10 +1,12 @@
-# Manual de configuración física — Kiosco y pantalla de sala
+# Manual de configuración física — Kiosco, sala y encuestas
 
 Esta guía es para quien instale o le dé mantenimiento a las computadoras
 físicas del sistema (no requiere saber programar). Cubre cómo dejar una
-pantalla de **kiosco** (donde el asociado toca para sacar su ficha) o de
-**sala** (pantalla que muestra el turno llamado) lista para funcionar sola,
-sin que nadie tenga que intervenir después de instalarla.
+pantalla de **kiosco** (donde el asociado toca para sacar su ficha), de
+**sala** (pantalla que muestra el turno llamado), o la **tableta de
+encuestas** lista para funcionar sola, sin que nadie tenga que intervenir
+después de instalarla. El procedimiento es idéntico para las tres — solo
+cambia qué rol se elige al registrar el equipo dentro de la app (paso 7).
 
 No aplica a las computadoras de **ventanilla** ni de **Administración** —
 esas sí deben pedir inicio de sesión normal, porque identifican a la persona
@@ -37,7 +39,10 @@ designada.
    puede recortar o escalar mal la ficha aunque el sistema ya la genere en
    blanco y negro correctamente.
 
-## 3. Abrir la pantalla en modo kiosco, con impresión silenciosa
+## 3. Abrir la pantalla en modo kiosco (pantalla completa, sin cerrarse)
+
+Mismos pasos para kiosco, sala y encuestas — la única diferencia es qué rol
+elige dentro de la app al registrar el equipo (paso 7).
 
 1. Clic derecho en el escritorio → `Nuevo` → `Acceso directo`.
 2. En "Ubicación del elemento" (ajuste la ruta si Chrome está instalado en
@@ -49,10 +54,12 @@ designada.
    ```
    "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --kiosk-printing --kiosk "https://gestorcolascoope-production.up.railway.app/"
    ```
-3. `--kiosk-printing` imprime directo a la impresora predeterminada, sin
-   mostrar el diálogo de vista previa. `--kiosk` pone el navegador a
-   pantalla completa sin barra de direcciones (quítelo en ventanilla/sala
-   si prefiere ver los controles del navegador).
+3. `--kiosk` es lo que importa para las tres pantallas: pone el navegador a
+   pantalla completa, sin barra de direcciones ni controles — así nadie lo
+   cierra por accidente. `--kiosk-printing` solo tiene efecto en el kiosco
+   (imprime directo a la impresora predeterminada sin mostrar el diálogo);
+   en sala/encuestas no hace nada, así que no hace daño dejarlo igual en
+   los tres accesos directos.
 
 **Importante:** si Chrome/Edge ya estaba abierto (otra ventana o pestaña)
 cuando se abre este acceso directo, Windows reutiliza esa ventana existente
@@ -120,14 +127,14 @@ robusto que el acceso directo del paso 3, pero no siempre está disponible
 según la edición de Windows. Si no aparece, el método de los pasos 3-5
 sigue siendo un respaldo sólido.
 
-## 7. Por qué la sesión no vuelve a pedir login en kiosco/sala
+## 7. Por qué la sesión no vuelve a pedir login en kiosco/sala/encuestas
 
-Las pantallas de kiosco y sala reciben, al registrarse por primera vez, una
-sesión de **30 días** en vez de las 10 horas normales — y esa sesión
-sobrevive a que Chrome se cierre y se vuelva a abrir (incluso por el script
-vigilante o un reinicio completo del equipo). Por eso, una vez configurada
-una pantalla de kiosco o sala, nadie debería tener que volver a iniciar
-sesión ahí salvo que:
+Las pantallas de kiosco, sala y encuestas reciben, al registrarse por
+primera vez, una sesión de **30 días** en vez de las 10 horas normales — y
+esa sesión sobrevive a que Chrome se cierre y se vuelva a abrir (incluso
+por el script vigilante o un reinicio completo del equipo). Por eso, una
+vez configurada una de estas tres pantallas, nadie debería tener que volver
+a iniciar sesión ahí salvo que:
 - Pasen los 30 días sin que la pantalla se haya usado (vuelve a pedir
   login, y se reinicia el plazo otra 30 días al registrar de nuevo).
 - Un administrador elimine o restablezca esa cuenta desde
@@ -139,15 +146,16 @@ a la persona que inició sesión — eso no cambió.
 
 ---
 
-## Resumen — checklist para dejar una pantalla de kiosco o sala lista
+## Resumen — checklist para dejar una pantalla de kiosco, sala o encuestas lista
 
 - [ ] Impresora térmica configurada como predeterminada, con el tamaño de
-      papel correcto en su driver (paso 2).
+      papel correcto en su driver (paso 2) — solo aplica al kiosco.
 - [ ] Acceso directo con `--kiosk-printing --kiosk` creado y probado con
       Chrome/Edge completamente cerrado antes de abrirlo (paso 3).
 - [ ] Inicio de sesión automático de Windows activado (paso 4.1).
 - [ ] Acceso directo movido a `shell:startup` (paso 4.2).
 - [ ] Pantalla y suspensión en "Nunca" (paso 4.3).
 - [ ] `kiosco-vigilante.ps1` instalado y probado (paso 5).
-- [ ] Sesión iniciada una vez y pantalla registrada como Kiosco o Sala
-      dentro de la app — confirme que sobrevive a un reinicio de Chrome.
+- [ ] Sesión iniciada una vez y pantalla registrada como Kiosco, Sala o
+      Encuestas dentro de la app — confirme que sobrevive a un reinicio de
+      Chrome.
