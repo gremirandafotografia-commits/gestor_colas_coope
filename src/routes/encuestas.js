@@ -64,11 +64,18 @@ router.delete('/encuestas/canales/:nombre', exigirSesion, exigirAdmin, async (re
  *  mientras el mismo turno sigue en atención, esa memoria se pierde y
  *  antes volvía a dejar entrar a la misma encuesta ya respondida. */
 router.get('/sucursales/:id/turno-en-atencion/:puestoId', exigirSesion, async (req, res) => {
+  // ORDER BY hora_atencion DESC: sin esto, si por cualquier motivo quedó
+  // más de una ficha en estado='atendiendo' en el mismo puesto (una vieja
+  // que nunca se cerró bien, por ejemplo), Postgres puede devolver
+  // cualquiera de las dos con LIMIT 1 sin orden — y si la vieja ya tenía
+  // encuesta, la tableta mostraba "ya respondida" para la ficha nueva que
+  // sí correspondía atender ahora.
   const { rows } = await query(
     `SELECT t.id, t.folio, t.tramite_nombre, t.idioma,
             EXISTS(SELECT 1 FROM encuesta_respuestas er WHERE er.turno_id = t.id) AS ya_respondida
      FROM turnos t
-     WHERE t.puesto_id = $1 AND t.estado = 'atendiendo' LIMIT 1`,
+     WHERE t.puesto_id = $1 AND t.estado = 'atendiendo'
+     ORDER BY t.hora_atencion DESC LIMIT 1`,
     [req.params.puestoId]
   );
   res.json(rows[0] || null);
