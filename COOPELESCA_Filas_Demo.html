@@ -3762,6 +3762,7 @@ function vistaAdmin(){
         const pe = g.esperas.length ? g.esperas.reduce(function(a,b){return a+b;},0)/g.esperas.length : 0;
         const pa = g.atenciones.length ? g.atenciones.reduce(function(a,b){return a+b;},0)/g.atenciones.length : 0;
         const st = g.sat.length ? g.sat.reduce(function(a,b){return a+b;},0)/g.sat.length : null;
+        const stEtq = st!=null ? (SATISFACCION[Math.round(st)]||SATISFACCION[3]).etiqueta : null;
         const stColor = st==null ? 'var(--dim)' : (SATISFACCION[Math.round(st)]||SATISFACCION[3]).color;
         h += '<div data-a="rep-detalle" data-t="usuario" data-v="'+esc(g.nombre)+'" style="cursor:pointer;display:grid;grid-template-columns:1.3fr 80px 92px 92px 84px 96px;font-size:12.5px;padding:8px 2px;border-bottom:1px solid var(--gris);align-items:center">'+
           '<div><b>'+esc(g.nombre)+'</b></div>'+
@@ -3769,7 +3770,8 @@ function vistaAdmin(){
           '<div style="font-family:monospace">'+crono(pe)+'</div>'+
           '<div style="font-family:monospace">'+crono(pa)+'</div>'+
           '<div style="color:'+(g.perdidas?'var(--rojo)':'var(--dim)')+'">'+g.perdidas+'</div>'+
-          '<div style="color:'+stColor+';font-weight:700">'+(st!=null?st.toFixed(1)+' / 5 ('+g.sat.length+')':'—')+'</div></div>';
+          '<div style="color:'+stColor+'"><b style="font-weight:700">'+(st!=null?st.toFixed(1)+' / 5':'—')+'</b>'+
+          (stEtq?'<div style="font-size:10px">'+esc(stEtq)+' ('+g.sat.length+')</div>':'')+'</div></div>';
       });
       h += '</div></div>';
     } else h += '<div class="vacio">Sin actividad por funcionario en el período seleccionado.</div>';
@@ -5183,7 +5185,7 @@ function modalDetalleReporte(tipo, clave){
           '<td style="'+celda+'"><b>'+esc(t.folio)+'</b></td><td style="'+celda+'">'+esc(t.tramiteNombre||'—')+'</td>'+
           '<td style="'+celda+'">'+esc(t.puestoNombre||'—')+'</td><td style="'+celda+'">'+esc(usuarioCorto(t.atendidoPor))+'</td>'+
           '<td style="'+celda+'">'+esc(t.estado)+'</td><td style="'+celda+'">'+esp+'</td><td style="'+celda+'">'+ate+'</td>'+
-          '<td style="'+celda+'">'+(calif!=null ? '<b style="color:'+(SATISFACCION[Math.round(calif)]||SATISFACCION[3]).color+'">'+calif.toFixed(1)+' / 5</b>' : '—')+'</td></tr>';
+          '<td style="'+celda+'">'+(calif!=null ? '<b style="color:'+(SATISFACCION[Math.round(calif)]||SATISFACCION[3]).color+'">'+calif.toFixed(1)+' / 5</b> <span style="color:var(--dim);font-size:10.5px">('+esc((SATISFACCION[Math.round(calif)]||SATISFACCION[3]).etiqueta)+')</span>' : '—')+'</td></tr>';
       }).join('')+
       '</tbody></table></div>'+
       (turnos.length>MOSTRAR ? '<p style="font-size:11px;color:var(--dim);margin:6px 0 0">Mostrando '+MOSTRAR+' de '+turnos.length+' — use «Exportar CSV» para el detalle completo.</p>' : '')
