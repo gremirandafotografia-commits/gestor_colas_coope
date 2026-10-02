@@ -2308,7 +2308,7 @@ async function refrescarEncuestas(){
   const suc = (equipo&&equipo.sucursalId)||E.sucursales[0].id;
   try{
     const t = await api('/api/sucursales/'+suc+'/turno-en-atencion/'+puestoId);
-    const nuevo = t ? {id:t.id, folio:t.folio, tramiteNombre:t.tramite_nombre, idioma:t.idioma} : null;
+    const nuevo = t ? {id:t.id, folio:t.folio, tramiteNombre:t.tramite_nombre, idioma:t.idioma, yaRespondida:!!t.ya_respondida} : null;
     // Si la encuesta se quedó a medio llenar (paso 'form') para un turno que
     // ya no es el que se está atendiendo — se abandonó sin enviarla y el
     // puesto pasó a la siguiente persona—, no se queda pegada esperando a
@@ -2397,8 +2397,13 @@ function vistaEncuestas(){
     // Si el turno en atención ya tiene una encuesta registrada (respondida o
     // ya finalizada su registro), no se permite abrir una nueva sobre el
     // mismo turno — se muestra un aviso y no se ofrece el botón de inicio.
+    // turnoActivo.yaRespondida viene del servidor (ver GET
+    // /turno-en-atencion) y es la fuente real: sobrevive a que la pantalla
+    // se recargue mientras el mismo turno sigue en atención. ui.encRespondidos
+    // solo complementa para el instante justo después de enviar, antes de
+    // que la siguiente consulta al servidor lo confirme.
     const yaRespondida = puestoId && turnoActivo && turnoActivo.id &&
-      ui.encRespondidos && ui.encRespondidos.has(turnoActivo.id);
+      (turnoActivo.yaRespondida || (ui.encRespondidos && ui.encRespondidos.has(turnoActivo.id)));
     if (yaRespondida){
       return '<div class="'+claseEntra('enc:ya-respondida:'+turnoActivo.id)+'" style="min-height:520px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 30px">'+
         '<div style="width:72px;height:72px;border-radius:50%;background:var(--verde);color:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:20px">'+ico('check',36)+'</div>'+
@@ -5631,10 +5636,10 @@ async function accion(a, v, t, el){
       const puestoEnc = equipo && equipo.puestoId;
       const t2 = puestoEnc ? ui.encTurnoActivo : true;
       if (puestoEnc && !t2) return;
-      // Resguardo: si el turno ya tiene una encuesta registrada en esta
-      // pantalla, no se abre una nueva (la pantalla de idle ya lo bloquea
-      // visualmente antes).
-      if (t2 && t2.id && ui.encRespondidos && ui.encRespondidos.has(t2.id)) return;
+      // Resguardo: si el turno ya tiene una encuesta registrada —según el
+      // servidor (t2.yaRespondida) o la memoria de esta sesión— no se abre
+      // una nueva (la pantalla de idle ya lo bloquea visualmente antes).
+      if (t2 && t2.id && (t2.yaRespondida || (ui.encRespondidos && ui.encRespondidos.has(t2.id)))) return;
       ui.encTurno = (t2 && t2.id) ? {folio:t2.folio, tramiteNombre:t2.tramiteNombre, turnoId:t2.id, idioma:t2.idioma} : null;
       ui.encRespuestas = {};
       ui.encIndice = 0;

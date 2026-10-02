@@ -54,11 +54,21 @@ router.delete('/encuestas/canales/:nombre', exigirSesion, exigirAdmin, async (re
 /** GET /api/sucursales/:id/turno-en-atencion/:puestoId
  *  La tableta de encuestas consulta esto antes de habilitarse: solo debe
  *  ofrecer la encuesta mientras ese puesto tiene un turno EN ATENCIÓN en
- *  este momento — nunca antes, nunca después de cerrarlo. */
+ *  este momento — nunca antes, nunca después de cerrarlo.
+ *
+ *  Incluye ya_respondida (si ese turno ya tiene una encuesta guardada) para
+ *  que la tableta pueda mostrar "ya se recibió su respuesta" en vez de
+ *  volver a ofrecer las preguntas — esto tiene que venir del servidor, no
+ *  solo de la memoria del navegador: si la pantalla se recarga (nueva
+ *  versión desplegada, el script vigilante la reabre, un corte de luz)
+ *  mientras el mismo turno sigue en atención, esa memoria se pierde y
+ *  antes volvía a dejar entrar a la misma encuesta ya respondida. */
 router.get('/sucursales/:id/turno-en-atencion/:puestoId', exigirSesion, async (req, res) => {
   const { rows } = await query(
-    `SELECT id, folio, tramite_nombre, idioma FROM turnos
-     WHERE puesto_id = $1 AND estado = 'atendiendo' LIMIT 1`,
+    `SELECT t.id, t.folio, t.tramite_nombre, t.idioma,
+            EXISTS(SELECT 1 FROM encuesta_respuestas er WHERE er.turno_id = t.id) AS ya_respondida
+     FROM turnos t
+     WHERE t.puesto_id = $1 AND t.estado = 'atendiendo' LIMIT 1`,
     [req.params.puestoId]
   );
   res.json(rows[0] || null);
