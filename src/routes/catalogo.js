@@ -92,8 +92,22 @@ router.patch('/puestos/:id', exigirSesion, exigirAdmin, async (req, res) => {
 });
 
 router.delete('/puestos/:id', exigirSesion, exigirAdmin, async (req, res) => {
-  await query('DELETE FROM puestos WHERE id = $1', [req.params.id]);
-  res.json({ ok: true });
+  try {
+    await query('DELETE FROM puestos WHERE id = $1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) {
+    // 23503 = foreign_key_violation: el puesto ya atendió turnos (turnos.puesto_id
+    // no tiene ON DELETE CASCADE, a propósito, para no perder ese historial de
+    // Reportes). Sin este manejo, el error de Postgres caía en el manejador
+    // genérico y el administrador solo veía "Error interno del servidor", sin
+    // ninguna pista de qué hacer.
+    if (e.code === '23503') {
+      return res.status(409).json({
+        error: 'No se puede eliminar este puesto porque ya tiene turnos registrados en su historial. Desactívelo en vez de eliminarlo (quite la marca de "Activo" en Administración → Puestos) para conservar ese historial en Reportes.',
+      });
+    }
+    throw e;
+  }
 });
 
 module.exports = router;
