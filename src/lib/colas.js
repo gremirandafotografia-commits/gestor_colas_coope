@@ -9,12 +9,11 @@
  */
 const { query } = require('../db');
 
-/** Puestos activos de una sucursal, con sus trámites habilitados. */
-async function puestosDeSucursal(sucursalId) {
-  const { rows: puestos } = await query(
-    `SELECT * FROM puestos WHERE sucursal_id = $1 AND activo = true ORDER BY id`,
-    [sucursalId]
-  );
+/** Arma la lista de puestos (ya traídos con el filtro que corresponda) con
+ *  sus trámites habilitados. Compartido por puestosDeSucursal (solo
+ *  activos, para la cola) y todosLosPuestosDeSucursal (todos, para
+ *  Administración) — ver comentarios de cada una. */
+async function conTramites(sucursalId, puestos) {
   const { rows: rel } = await query(
     `SELECT pt.puesto_id, pt.tramite_id FROM puesto_tramites pt
      JOIN puestos p ON p.id = pt.puesto_id WHERE p.sucursal_id = $1`,
@@ -25,6 +24,30 @@ async function puestosDeSucursal(sucursalId) {
     (tramitesPorPuesto[r.puesto_id] ||= []).push(r.tramite_id);
   });
   return puestos.map((p) => ({ ...p, tramites: tramitesPorPuesto[p.id] || [] }));
+}
+
+/** Puestos ACTIVOS de una sucursal, con sus trámites habilitados — para la
+ *  lógica de colas (colaPuesto, tramitesHabilitados, etc.): un puesto
+ *  inactivo nunca debe recibir fichas. */
+async function puestosDeSucursal(sucursalId) {
+  const { rows: puestos } = await query(
+    `SELECT * FROM puestos WHERE sucursal_id = $1 AND activo = true ORDER BY id`,
+    [sucursalId]
+  );
+  return conTramites(sucursalId, puestos);
+}
+
+/** TODOS los puestos de una sucursal, activos e inactivos — para
+ *  Administración → Puestos y trámites (GET /sucursales/:id/puestos): si
+ *  esta ruta usara puestosDeSucursal, un puesto desactivado desaparecía
+ *  por completo de la pantalla en vez de mostrarse como «Inactivo», y no
+ *  había manera de volver a activarlo desde la interfaz. */
+async function todosLosPuestosDeSucursal(sucursalId) {
+  const { rows: puestos } = await query(
+    `SELECT * FROM puestos WHERE sucursal_id = $1 ORDER BY id`,
+    [sucursalId]
+  );
+  return conTramites(sucursalId, puestos);
 }
 
 /** ¿A qué área (trámites o pagos) pertenece un trámite en esta sucursal? Se
@@ -136,6 +159,7 @@ async function colaPuesto(sucursalId, puesto) {
 
 module.exports = {
   puestosDeSucursal,
+  todosLosPuestosDeSucursal,
   areaDeTramite,
   colaSucursal,
   pagosSaturados,

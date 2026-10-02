@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const { query } = require('../db');
 const { exigirSesion, exigirAdmin } = require('../middleware/auth');
-const { puestosDeSucursal } = require('../lib/colas');
+const { todosLosPuestosDeSucursal } = require('../lib/colas');
 
 // ---------------------------------------------------------------------------
 // Sucursales
@@ -49,7 +49,10 @@ router.delete('/tramites/:id', exigirSesion, exigirAdmin, async (req, res) => {
 // Puestos (ventanillas y cajas)
 // ---------------------------------------------------------------------------
 router.get('/sucursales/:id/puestos', exigirSesion, async (req, res) => {
-  res.json(await puestosDeSucursal(req.params.id));
+  // Trae TODOS los puestos (activos e inactivos) — Administración necesita
+  // ver los inactivos para poder reactivarlos; la cola del kiosco/operador
+  // sigue filtrando por activo aparte, en src/lib/colas.js.
+  res.json(await todosLosPuestosDeSucursal(req.params.id));
 });
 
 router.post('/puestos', exigirSesion, exigirAdmin, async (req, res) => {
